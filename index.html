@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Courbe de poids</title>
+<meta name="description" content="Suivi des pesées et des objectifs de poids.">
+<meta name="theme-color" content="#1f5f8b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10181f" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Poids">
+<style>
+:root {
+  --bg: #f2f5f7;
+  --surface: #ffffff;
+  --ink: #17242e;
+  --muted: #5b6b78;
+  --line: #d9e0e6;
+  --poids: #1f5f8b;
+  --poids-soft: #e1edf6;
+  --objectif: #c4473a;
+  --sim: #7a5aa6;
+  --danger: #b3261e;
+  --on-accent: #ffffff;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10181f;
+    --surface: #18232c;
+    --ink: #e6edf2;
+    --muted: #93a3b0;
+    --line: #2a3742;
+    --poids: #6fb1e0;
+    --poids-soft: #1d3446;
+    --objectif: #ee7b6e;
+    --sim: #b49ae0;
+    --danger: #f2877e;
+    --on-accent: #0c1620;
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100%;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
+}
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--poids); outline-offset: 2px; }
+
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.bar h1 { margin: 0; font-size: 1.05rem; font-weight: 650; flex: 1; letter-spacing: -0.01em; }
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); font-size: 1.5rem; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+
+main {
+  max-width: 640px; margin: 0 auto;
+  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+}
+h2 { font-size: 1.35rem; margin: 4px 0 16px; letter-spacing: -0.01em; }
+h3 { font-size: 1rem; margin: 28px 0 8px; }
+p { margin: 0 0 12px; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Accueil */
+.hero { padding: 8px 0 24px; }
+.hero .big {
+  font-size: clamp(4rem, 22vw, 6.5rem); font-weight: 700; line-height: 0.95;
+  letter-spacing: -0.04em; color: var(--poids); font-variant-numeric: tabular-nums;
+}
+.hero .big small { font-size: 0.32em; letter-spacing: 0; margin-left: 6px; color: var(--muted); font-weight: 600; }
+.hero .when { color: var(--muted); margin-top: 6px; }
+.hero .goal { margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--objectif); }
+.menu { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.menu button {
+  text-align: left; padding: 16px; min-height: 92px; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+}
+.menu button strong { font-size: 1.1rem; }
+.menu button span { color: var(--muted); font-size: 0.88rem; line-height: 1.3; }
+.menu button:active { transform: scale(0.985); }
+
+/* Formulaires */
+.entry { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.kg {
+  display: flex; align-items: baseline; gap: 6px; padding: 8px 16px;
+  border-radius: 16px; border: 2px solid var(--line); background: var(--surface);
+  flex: 1 1 160px; min-width: 0;
+}
+.kg:focus-within { border-color: var(--poids); }
+.kg input {
+  border: 0; background: transparent; outline: none; width: 100%; min-width: 0;
+  font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; text-align: right;
+  font-variant-numeric: tabular-nums; padding: 0;
+}
+.kg span { font-size: 1.2rem; color: var(--muted); font-weight: 600; }
+.datepick {
+  position: relative; flex: 1 1 200px; border-radius: 16px; border: 2px solid var(--line);
+  background: var(--surface); padding: 10px 16px; display: flex; flex-direction: column; justify-content: center;
+}
+.datepick:focus-within { border-color: var(--poids); }
+.datepick .lbl { font-size: 0.82rem; color: var(--muted); }
+.datepick .val { font-weight: 600; font-size: 1.05rem; }
+.datepick input {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+  border: 0; -webkit-appearance: none; appearance: none;
+}
+.error { color: var(--danger); min-height: 1.45em; margin: 8px 0 0; font-size: 0.95rem; }
+
+.btn {
+  display: block; width: 100%; padding: 14px 18px; border-radius: 14px; cursor: pointer;
+  font-weight: 650; border: 1px solid var(--line); background: var(--surface); text-align: center;
+}
+.btn.primary { background: var(--poids); border-color: var(--poids); color: var(--on-accent); }
+.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
+.btn + .btn { margin-top: 10px; }
+.stack { margin-top: 14px; }
+
+/* Tableaux */
+.rows { list-style: none; margin: 0 0 16px; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.rows li { display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 16px; border-top: 1px solid var(--line); }
+.rows li:first-child { border-top: 0; }
+.rows .d { flex: 1; min-width: 0; }
+.rows .d small { display: block; color: var(--muted); font-size: 0.85rem; }
+.rows .k { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rows .del { width: 40px; height: 40px; border: 0; background: transparent; color: var(--muted); font-size: 1.3rem; border-radius: 10px; cursor: pointer; }
+.down { color: var(--poids); }
+.up { color: var(--objectif); }
+.empty { padding: 24px 0; }
+
+/* Graphique */
+.chart-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 8px 4px 4px; overflow-x: auto; }
+.chart-wrap svg { display: block; width: 100%; height: auto; min-width: 320px; touch-action: pan-y; }
+.chart-wrap .ax { fill: var(--muted); font-size: 12px; font-family: inherit; }
+.chart-wrap .grid { stroke: var(--line); stroke-width: 1; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); padding: 8px 12px 4px; }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+.ctrl { margin-top: 18px; }
+.ctrl label { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
+.ctrl label output { font-weight: 500; color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--poids); margin: 8px 0 0; height: 32px; }
+.values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
+.values div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.values small { display: block; color: var(--muted); font-size: 0.8rem; }
+.values b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.simtxt { margin-top: 12px; padding-left: 12px; border-left: 3px solid var(--sim); }
+@media (orientation: landscape) and (max-height: 560px) {
+  main { max-width: 1000px; }
+  .graph-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
+  .graph-layout .ctrl:first-child { margin-top: 0; }
+}
+
+/* Infos */
+textarea {
+  width: 100%; min-height: 180px; resize: vertical; padding: 14px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--surface); line-height: 1.5;
+}
+dl.stats { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
+dl.stats dt { color: var(--muted); }
+dl.stats dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* Toast + dialogue */
+#toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 12px;
+  max-width: calc(100% - 32px); transition: opacity .2s, transform .2s; z-index: 20; font-size: 0.95rem;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+dialog {
+  border: 1px solid var(--line); border-radius: 18px; padding: 22px; max-width: 340px; width: calc(100% - 40px);
+  background: var(--surface); color: var(--ink);
+}
+dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+dialog p { margin: 0 0 18px; font-weight: 600; }
+dialog .row { display: flex; gap: 10px; }
+dialog .row .btn { margin: 0; }
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } .menu button:active { transform: none; } }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 id="title">Courbe de poids</h1>
+  <button class="icon-btn" id="homeBtn" aria-label="Retour à l’accueil">≡</button>
+</header>
+<main id="app"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="confirm">
+  <p id="confirmMsg"></p>
+  <div class="row">
+    <button class="btn" value="cancel" id="confirmNo">Annuler</button>
+    <button class="btn danger" value="ok" id="confirmYes">Confirmer</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Stockage (remplace pesees.json / objectifs.json)
+   ============================================================ */
+const KEYS = { pesees: "cdp.pesees", objectifs: "cdp.objectifs", memo: "cdp.memo" };
+
+function loadList(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw.trim() === "") return [];
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) throw new Error("Format invalide");
+    return data;
+  } catch (e) {
+    console.warn("Données corrompues, réinitialisation :", key, e);
+    return [];
+  }
+}
+function save(key, value) {
+  try {
+    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+    return true;
+  } catch (e) {
+    toast("Enregistrement impossible : le stockage du navigateur est indisponible.");
+    return false;
+  }
+}
+
+let pesees = loadList(KEYS.pesees);
+let objectifs = loadList(KEYS.objectifs);
+const savePesees = () => save(KEYS.pesees, pesees);
+const saveObjectifs = () => save(KEYS.objectifs, objectifs);
+
+// Demande au navigateur de ne pas effacer les données (utile sur mobile)
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+/* ============================================================
+   Dates et nombres
+   ============================================================ */
+const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+const DAY = 86400000;
+const pad = (n) => String(n).padStart(2, "0");
+const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const fromISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const formatFr = (d) => `${JOURS[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+const shortFr = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
+
+// Accepte "lundi 26/10/2026", "26/10/2026" ou "2026-10-26"
+function parseAnyDate(s) {
+  if (!s) return null;
+  s = String(s).trim();
+  let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
+}
+function parseKg(s) {
+  const v = parseFloat(String(s).replace(",", ".").trim());
+  return Number.isFinite(v) ? v : null;
+}
+const fmtKg = (v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+const fmtDelta = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + fmtKg(Math.abs(v));
+
+// Liste triée de points {idx, d, kg} à partir des données brutes
+function series(list) {
+  return list
+    .map((e, idx) => ({ idx, d: parseAnyDate(e.date), kg: parseKg(e.poids) }))
+    .filter((p) => p.d && p.kg !== null)
+    .sort((a, b) => a.d - b.d);
+}
+function interpolate(pts, t) {
+  if (!pts.length) return null;
+  if (t < pts[0].d || t > pts[pts.length - 1].d) return null;
+  for (let i = 0; i < pts.length; i++) {
+    if (+pts[i].d === +t) return pts[i].kg;
+    if (pts[i].d > t) {
+      const a = pts[i - 1], b = pts[i];
+      return a.kg + (b.kg - a.kg) * (t - a.d) / (b.d - a.d);
+    }
+  }
+  return null;
+}
+function nextObjective() {
+  const t = today();
+  return series(objectifs).find((o) => o.d >= t) || null;
+}
+
+/* ============================================================
+   Utilitaires d'interface
+   ============================================================ */
+const app = document.getElementById("app");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function confirmAsk(message, okLabel = "Confirmer") {
+  const dlg = document.getElementById("confirm");
+  document.getElementById("confirmMsg").textContent = message;
+  document.getElementById("confirmYes").textContent = okLabel;
+  return new Promise((resolve) => {
+    const yes = document.getElementById("confirmYes");
+    const no = document.getElementById("confirmNo");
+    const done = (v) => { dlg.close(); yes.onclick = no.onclick = dlg.oncancel = null; resolve(v); };
+    yes.onclick = () => done(true);
+    no.onclick = () => done(false);
+    dlg.oncancel = () => done(false);
+    if (dlg.showModal) dlg.showModal(); else resolve(window.confirm(message));
+  });
+}
+
+// Champ date natif caché derrière un libellé en français (remplace la fenêtre calendrier)
+function bindDatePicker(root, initial, onChange) {
+  const input = root.querySelector("input[type=date]");
+  const val = root.querySelector(".val");
+  input.value = toISO(initial);
+  val.textContent = formatFr(initial);
+  input.addEventListener("change", () => {
+    if (!input.value) { input.value = toISO(today()); }
+    const d = fromISO(input.value);
+    val.textContent = formatFr(d);
+    onChange && onChange(d);
+  });
+  input.addEventListener("click", () => { try { input.showPicker && input.showPicker(); } catch (e) {} });
+  return () => fromISO(input.value);
+}
+
+/* ============================================================
+   Navigation (hash : #pesee, #objectif, #graphique…)
+   ============================================================ */
+const VIEWS = {
+  "": ["Courbe de poids", viewHome],
+  "pesee": ["Pesée", viewPesee],
+  "pesees": ["Tableau des pesées", viewTablePesees],
+  "objectif": ["Objectif", viewObjectif],
+  "objectifs": ["Tableau des objectifs", viewTableObjectifs],
+  "graphique": ["Graphique", viewGraphique],
+  "infos": ["Infos / Mémo", viewInfos],
+};
+function go(name) { location.hash = name ? "#" + name : "#"; }
+function render() {
+  const name = location.hash.replace(/^#/, "");
+  const [title, fn] = VIEWS[name] || VIEWS[""];
+  document.getElementById("title").textContent = title;
+  document.title = name ? `${title} – Courbe de poids` : "Courbe de poids";
+  app.innerHTML = "";
+  fn();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", render);
+document.getElementById("homeBtn").addEventListener("click", () => go(""));
+app.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go]");
+  if (b) go(b.dataset.go);
+});
+
+/* ============================================================
+   ACCUEIL
+   ============================================================ */
+function viewHome() {
+  const P = series(pesees);
+  const last = P[P.length - 1];
+  const next = nextObjective();
+  let hero = `<p class="muted">Aucune pesée pour l’instant. Commencez par entrer votre poids du jour.</p>`;
+  if (last) {
+    hero = `<div class="big">${fmtKg(last.kg)}<small>kg</small></div>
+      <div class="when">Dernière pesée : ${formatFr(last.d)}</div>`;
+    if (next) {
+      const reste = last.kg - next.kg;
+      const jours = Math.round((next.d - today()) / DAY);
+      hero += `<div class="goal">Objectif ${fmtKg(next.kg)} kg le ${shortFr(next.d)} :
+        ${reste > 0 ? `encore ${fmtKg(reste)} kg à perdre` : "objectif déjà atteint"},
+        ${jours === 0 ? "c’est aujourd’hui" : `dans ${jours} jour${jours > 1 ? "s" : ""}`}.</div>`;
+    }
+  }
+  app.innerHTML = `
+    <section class="hero">${hero}</section>
+    <nav class="menu" aria-label="Menu principal">
+      <button data-go="pesee"><strong>Pesée</strong><span>Enregistrer un poids</span></button>
+      <button data-go="objectif"><strong>Objectif</strong><span>Fixer un poids à atteindre</span></button>
+      <button data-go="graphique"><strong>Graphique</strong><span>Poids et objectifs dans le temps</span></button>
+      <button data-go="infos"><strong>Infos / Mémo</strong><span>Notes, bilan, sauvegarde</span></button>
+    </nav>`;
+}
+
+/* ============================================================
+   PESÉE
+   ============================================================ */
+function viewPesee() {
+  app.innerHTML = `
+    <h2>Entrer une pesée</h2>
+    <div class="entry">
+      <label class="kg"><input id="kg" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="00,0" aria-label="Poids en kilos"><span>kg</span></label>
+      <div class="datepick"><span class="lbl">Date</span><span class="val"></span><input type="date" aria-label="Date de la pesée"></div>
+    </div>
+    <p class="error" id="err"></p>
+    <button class="btn primary" id="save">Valider</button>
+    <div class="stack"><button class="btn" data-go="pesees">Tableau des pesées</button></div>`;
+
+  const kg = document.getElementById("kg");
+  const err = document.getElementById("err");
+  const getDate = bindDatePicker(app.querySelector(".datepick"), today());
+  const P = series(pesees);
+  if (P.length) kg.placeholder = fmtKg(P[P.length - 1].kg);
+
+  function savePesee() {
+    const v = parseKg(kg.value);
+    if (v === null) { err.textContent = "Saisissez un poids en kilos, par exemple 92 ou 91,5."; kg.focus(); return; }
+    if (v < 20 || v > 400) { err.textContent = "Ce poids semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
+    const d = getDate();
+    pesees.push({ poids: String(v), date: formatFr(d) });
+    if (savePesees()) {
+      err.textContent = "";
+      kg.value = "";
+      kg.placeholder = fmtKg(v);
+      toast(`Pesée enregistrée : ${fmtKg(v)} kg, ${formatFr(d)}`);
+    }
+  }
+  document.getElementById("save").addEventListener("click", savePesee);
+  kg.addEventListener("keydown", (e) => { if (e.key === "Enter") savePesee(); });
+  kg.addEventListener("input", () => { err.textContent = ""; });
+}
+
+function viewTablePesees() {
+  const P = series(pesees);
+  if (!P.length) {
+    app.innerHTML = `<p class="empty muted">Aucune pesée enregistrée pour le moment.</p>
+      <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
+    return;
+  }
+  const rows = P.slice().reverse().map((p, i, arr) => {
+    const prev = arr[i + 1];
+    const delta = prev ? p.kg - prev.kg : null;
+    const cls = delta === null || delta === 0 ? "" : delta < 0 ? "down" : "up";
+    return `<li><div class="d">${formatFr(p.d)}${delta !== null ? `<small class="${cls}">${fmtDelta(delta)} kg</small>` : `<small>Première pesée</small>`}</div>
+      <div class="k">${fmtKg(p.kg)} kg</div>
+      <button class="del" data-del="${p.idx}" aria-label="Supprimer la pesée du ${shortFr(p.d)}">×</button></li>`;
+  }).join("");
+  app.innerHTML = `<h2>Tableau des pesées</h2><ul class="rows">${rows}</ul>
+    <button class="btn danger" id="clear">Effacer toutes les pesées</button>`;
+
+  app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+    const idx = +b.dataset.del;
+    const e = pesees[idx];
+    if (await confirmAsk(`Supprimer la pesée du ${e.date} (${e.poids} kg) ?`, "Supprimer")) {
+      pesees.splice(idx, 1); savePesees(); render(); toast("Pesée supprimée");
+    }
+  }));
+  document.getElementById("clear").addEventListener("click", async () => {
+    if (await confirmAsk("Voulez-vous vraiment effacer toutes les pesées ?", "Tout effacer")) {
+      pesees = []; savePesees(); render(); toast("Toutes les pesées ont été effacées");
+    }
+  });
+}
+
+/* ============================================================
+   OBJECTIF
+   ============================================================ */
+function viewObjectif() {
+  const def = today(); def.setMonth(def.getMonth() + 1);
+  app.innerHTML = `
+    <h2>Définir un objectif</h2>
+    <div class="entry">
+      <label class="kg"><input id="kg" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="00,0" aria-label="Objectif en kilos"><span>kg</span></label>
+      <div class="datepick"><span class="lbl">À atteindre le</span><span class="val"></span><input type="date" aria-label="Date de l’objectif"></div>
+    </div>
+    <p class="error" id="err"></p>
+    <button class="btn primary" id="save">Valider</button>
+    <div class="stack"><button class="btn" data-go="objectifs">Tableau des objectifs</button></div>`;
+
+  const kg = document.getElementById("kg");
+  const err = document.getElementById("err");
+  const getDate = bindDatePicker(app.querySelector(".datepick"), def);
+
+  function saveObjectif() {
+    const v = parseKg(kg.value);
+    if (v === null) { err.textContent = "Saisissez un poids cible en kilos, par exemple 85."; kg.focus(); return; }
+    if (v < 20 || v > 400) { err.textContent = "Cet objectif semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
+    const d = getDate();
+    objectifs.push({ poids: String(v), date: toISO(d) });
+    if (saveObjectifs()) {
+      err.textContent = ""; kg.value = "";
+      toast(`Objectif enregistré : ${fmtKg(v)} kg le ${shortFr(d)}`);
+    }
+  }
+  document.getElementById("save").addEventListener("click", saveObjectif);
+  kg.addEventListener("keydown", (e) => { if (e.key === "Enter") saveObjectif(); });
+  kg.addEventListener("input", () => { err.textContent = ""; });
+}
+
+function viewTableObjectifs() {
+  const O = series(objectifs);
+  if (!O.length) {
+    app.innerHTML = `<p class="empty muted">Aucun objectif enregistré pour le moment.</p>
+      <button class="btn primary" data-go="objectif">Définir un objectif</button>`;
+    return;
+  }
+  const t = today();
+  const rows = O.map((o) => `<li><div class="d">${formatFr(o.d)}<small>${o.d < t ? "Date passée" : `Dans ${Math.round((o.d - t) / DAY)} jours`}</small></div>
+      <div class="k">${fmtKg(o.kg)} kg</div>
+      <button class="del" data-del="${o.idx}" aria-label="Supprimer l’objectif du ${shortFr(o.d)}">×</button></li>`).join("");
+  app.innerHTML = `<h2>Tableau des objectifs</h2><ul class="rows">${rows}</ul>
+    <button class="btn danger" id="clear">Effacer tous les objectifs</button>`;
+
+  app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+    const idx = +b.dataset.del;
+    if (await confirmAsk(`Supprimer l’objectif de ${objectifs[idx].poids} kg ?`, "Supprimer")) {
+      objectifs.splice(idx, 1); saveObjectifs(); render(); toast("Objectif supprimé");
+    }
+  }));
+  document.getElementById("clear").addEventListener("click", async () => {
+    if (await confirmAsk("Voulez-vous vraiment effacer tous les objectifs ?", "Tout effacer")) {
+      objectifs = []; saveObjectifs(); render(); toast("Tous les objectifs ont été effacés");
+    }
+  });
+}
+
+/* ============================================================
+   GRAPHIQUE
+   ============================================================ */
+
+// Tendance linéaire sur les 4 dernières semaines (au moins 2 pesées)
+function trend(P) {
+  if (P.length < 2) return null;
+  const last = P[P.length - 1].d;
+  let pts = P.filter((p) => (last - p.d) / DAY <= 28);
+  if (pts.length < 2) pts = P.slice(-3);
+  const xs = pts.map((p) => (p.d - last) / DAY), ys = pts.map((p) => p.kg);
+  const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+  let num = 0, den = 0;
+  xs.forEach((x, i) => { num += (x - mx) * (ys[i] - my); den += (x - mx) ** 2; });
+  if (den === 0) return null;
+  const slope = num / den;                   // kg par jour
+  const atLast = my + slope * (0 - mx);      // valeur de la tendance à la dernière date
+  return { slope, from: last, atLast };
+}
+
+function viewGraphique() {
+  const P = series(pesees), O = series(objectifs);
+  if (!P.length && !O.length) {
+    app.innerHTML = `<p class="empty muted">Aucune donnée pour afficher le graphique. Entrez au moins une pesée.</p>
+      <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
+    return;
+  }
+  const state = { months: 1, cursor: 100, sim: false };
+  const allDates = [...P, ...O].map((p) => p.d);
+  const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
+  const spanMonths = Math.ceil((lastAll - first) / DAY / 30.44) || 1;
+  state.months = Math.min(36, Math.max(1, spanMonths));
+
+  app.innerHTML = `
+    <div class="graph-layout">
+      <div>
+        <div class="chart-wrap" id="chart"></div>
+      </div>
+      <div>
+        <div class="ctrl">
+          <label for="cur">Curseur <output id="curOut"></output></label>
+          <input type="range" id="cur" min="0" max="100" step="1">
+        </div>
+        <div class="ctrl">
+          <label for="scale">Échelle <output id="scaleOut"></output></label>
+          <input type="range" id="scale" min="1" max="36" step="1">
+        </div>
+        <div class="values">
+          <div><small>Poids réel</small><b id="vP">--</b></div>
+          <div><small>Objectif</small><b id="vO">--</b></div>
+          <div><small>Différence</small><b id="vD">--</b></div>
+        </div>
+        <div class="stack"><button class="btn" id="simBtn" aria-pressed="false">Simulation</button></div>
+        <p class="simtxt" id="simTxt" hidden></p>
+      </div>
+    </div>`;
+
+  const cur = document.getElementById("cur"), scale = document.getElementById("scale");
+  scale.value = state.months;
+
+  function windowRange() {
+    const tr = state.sim ? trend(P) : null;
+    let end = new Date(lastAll);
+    let simEnd = null;
+    if (tr) {
+      const lastP = P[P.length - 1].d;
+      const lastO = O.length ? O[O.length - 1].d : null;
+      simEnd = lastO && lastO > lastP ? lastO : new Date(+lastP + 30 * DAY);
+      if (simEnd > end) end = simEnd;
+    }
+    const start = new Date(end); start.setMonth(start.getMonth() - state.months);
+    if (start < first && state.months >= spanMonths) start.setTime(first);
+    if (end - start < 7 * DAY) start.setTime(+end - 7 * DAY);
+    return { start, end, tr, simEnd };
+  }
+
+  // Place le curseur sur la dernière pesée par défaut
+  (function initCursor() {
+    const { start, end } = windowRange();
+    if (P.length) state.cursor = Math.round(Math.max(0, Math.min(1, (P[P.length - 1].d - start) / (end - start))) * 100);
+    cur.value = state.cursor;
+  })();
+
+  function draw() {
+    const { start, end, tr, simEnd } = windowRange();
+    const box = document.getElementById("chart");
+    const W = Math.max(320, Math.round(box.clientWidth - 8)), H = Math.round(Math.min(380, Math.max(230, W * 0.6)));
+    const L = 40, R = 14, T = 14, B = 34;
+    const cursorDate = new Date(+start + (end - start) * state.cursor / 100 + DAY / 2);
+    const cd = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), cursorDate.getDate());
+
+    // Points de la simulation
+    let simPts = [];
+    if (tr) {
+      const at = (d) => tr.atLast + tr.slope * (d - tr.from) / DAY;
+      simPts = [{ d: P[P.length - 1].d, kg: P[P.length - 1].kg }, { d: simEnd, kg: at(simEnd) }];
+    }
+
+    // Plage verticale : valeurs visibles uniquement
+    const inWin = (p) => p.d >= start && p.d <= end;
+    const vis = [...P.filter(inWin), ...O.filter(inWin), ...simPts.filter(inWin)].map((p) => p.kg);
+    [P, O].forEach((S) => { const v = interpolate(S, start); if (v !== null) vis.push(v); const w = interpolate(S, end); if (w !== null) vis.push(w); });
+    if (!vis.length) [...P, ...O].forEach((p) => vis.push(p.kg));
+    let ymin = Math.floor(Math.min(...vis) - 1), ymax = Math.ceil(Math.max(...vis) + 1);
+    const span = ymax - ymin;
+    const step = span <= 6 ? 1 : span <= 14 ? 2 : span <= 30 ? 5 : 10;
+    ymin = Math.floor(ymin / step) * step; ymax = Math.ceil(ymax / step) * step;
+
+    const x = (d) => L + (W - L - R) * (d - start) / (end - start);
+    const y = (v) => T + (H - T - B) * (ymax - v) / (ymax - ymin);
+
+    let g = "";
+    for (let v = ymin; v <= ymax; v += step) {
+      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>
+            <text class="ax" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    }
+    // Graduations horizontales
+    const ticks = [];
+    if (state.months <= 2) {
+      const d = new Date(start); d.setDate(d.getDate() + ((8 - d.getDay()) % 7)); // lundi suivant
+      for (; d <= end; d.setDate(d.getDate() + 7)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
+    } else {
+      const every = state.months <= 12 ? 1 : 3;
+      const d = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+      for (; d <= end; d.setMonth(d.getMonth() + every)) {
+        ticks.push([new Date(d), state.months <= 12 ? MOIS_COURTS[d.getMonth()] : `${MOIS_COURTS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`]);
+      }
+    }
+    ticks.forEach(([d, lbl]) => {
+      g += `<line class="grid" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}" stroke-dasharray="2 4"/>
+            <text class="ax" x="${x(d)}" y="${H - B + 20}" text-anchor="middle">${lbl}</text>`;
+    });
+
+    const line = (pts, color, dash) => pts.length < 2 ? "" :
+      `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : ""}
+        points="${pts.map((p) => `${x(p.d).toFixed(1)},${y(p.kg).toFixed(1)}`).join(" ")}"/>`;
+    const dots = (pts, color, hollow) => pts.map((p) =>
+      `<circle cx="${x(p.d).toFixed(1)}" cy="${y(p.kg).toFixed(1)}" r="4.5" fill="${hollow ? "var(--surface)" : color}" stroke="${color}" stroke-width="2"/>`).join("");
+
+    const cx = x(cd);
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique du poids réel et des objectifs">
+      <defs><clipPath id="clip"><rect x="${L - 6}" y="${T - 6}" width="${W - L - R + 12}" height="${H - T - B + 12}"/></clipPath></defs>
+      ${g}
+      <g clip-path="url(#clip)">
+        ${line(O, "var(--objectif)", "7 6")}${dots(O, "var(--objectif)", true)}
+        ${line(simPts, "var(--sim)", "3 5")}
+        ${line(P, "var(--poids)")}${dots(P, "var(--poids)")}
+        <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5" opacity=".55"/>
+      </g>
+    </svg>
+    <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
+      <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
+      ${tr ? `<span><i style="border-color:var(--sim);border-top-style:dotted"></i>Tendance</span>` : ""}</div>`;
+    document.getElementById("chart").innerHTML = svg;
+
+    // Valeurs au curseur
+    const vp = interpolate(P, cd), vo = interpolate(O, cd);
+    document.getElementById("curOut").textContent = formatFr(cd);
+    document.getElementById("scaleOut").textContent = `${state.months} mois`;
+    document.getElementById("vP").textContent = vp === null ? "--" : `${fmtKg(vp)} kg`;
+    document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
+    document.getElementById("vD").textContent = vp === null || vo === null ? "--" : `${fmtDelta(vp - vo)} kg`;
+
+    // Texte de simulation
+    const simTxt = document.getElementById("simTxt");
+    simTxt.hidden = !state.sim;
+    if (state.sim) {
+      if (!tr) simTxt.textContent = "Il faut au moins deux pesées à des dates différentes pour calculer une tendance.";
+      else {
+        const parSemaine = tr.slope * 7;
+        let txt = `Rythme des 4 dernières semaines : ${fmtDelta(parSemaine)} kg par semaine.`;
+        const next = nextObjective();
+        const lastKg = P[P.length - 1].kg;
+        if (next && next.kg < lastKg) {
+          if (tr.slope < 0) {
+            const jours = (next.kg - lastKg) / tr.slope;
+            const quand = new Date(+P[P.length - 1].d + jours * DAY);
+            txt += ` À ce rythme, ${fmtKg(next.kg)} kg serait atteint vers le ${shortFr(quand)} (objectif fixé au ${shortFr(next.d)}).`;
+          } else txt += ` À ce rythme, l’objectif de ${fmtKg(next.kg)} kg ne serait pas atteint.`;
+        }
+        simTxt.textContent = txt;
+      }
+    }
+  }
+
+  cur.addEventListener("input", () => { state.cursor = +cur.value; draw(); });
+  scale.addEventListener("input", () => { state.months = +scale.value; draw(); });
+  document.getElementById("simBtn").addEventListener("click", (e) => {
+    state.sim = !state.sim;
+    e.currentTarget.setAttribute("aria-pressed", state.sim);
+    e.currentTarget.textContent = state.sim ? "Masquer la simulation" : "Simulation";
+    draw();
+  });
+  draw();
+  const onResize = () => { if (document.getElementById("chart")) draw(); else window.removeEventListener("resize", onResize); };
+  window.addEventListener("resize", onResize);
+}
+
+/* ============================================================
+   INFOS / MÉMO
+   ============================================================ */
+function viewInfos() {
+  const P = series(pesees);
+  let stats = `<p class="muted">Le bilan apparaîtra après votre première pesée.</p>`;
+  if (P.length) {
+    const a = P[0], z = P[P.length - 1];
+    const sem = (z.d - a.d) / DAY / 7;
+    const min = P.reduce((m, p) => (p.kg < m.kg ? p : m));
+    const next = nextObjective();
+    stats = `<dl class="stats">
+      <dt>Première pesée</dt><dd>${fmtKg(a.kg)} kg le ${shortFr(a.d)}</dd>
+      <dt>Dernière pesée</dt><dd>${fmtKg(z.kg)} kg le ${shortFr(z.d)}</dd>
+      <dt>Évolution totale</dt><dd>${fmtDelta(z.kg - a.kg)} kg</dd>
+      ${sem >= 1 ? `<dt>Moyenne</dt><dd>${fmtDelta((z.kg - a.kg) / sem)} kg / semaine</dd>` : ""}
+      <dt>Poids le plus bas</dt><dd>${fmtKg(min.kg)} kg le ${shortFr(min.d)}</dd>
+      <dt>Nombre de pesées</dt><dd>${P.length}</dd>
+      ${next ? `<dt>Prochain objectif</dt><dd>${fmtKg(next.kg)} kg le ${shortFr(next.d)}</dd>
+               <dt>Reste à perdre</dt><dd>${fmtKg(Math.max(0, z.kg - next.kg))} kg</dd>` : ""}
+    </dl>`;
+  }
+  app.innerHTML = `
+    <h2>Notes personnelles</h2>
+    <textarea id="memo" placeholder="Notes personnelles…" aria-label="Notes personnelles"></textarea>
+    <p class="muted" id="memoState" style="font-size:.85rem">Les notes sont enregistrées automatiquement.</p>
+    <h3>Bilan</h3>
+    ${stats}
+    <h3>Sauvegarde</h3>
+    <p class="muted">Les données sont stockées sur cet appareil uniquement. Exportez-les régulièrement pour ne rien perdre.</p>
+    <button class="btn" id="export">Exporter les données</button>
+    <label class="btn file-btn">Importer un fichier (.json)<input type="file" id="import" accept=".json,application/json"></label>`;
+
+  const memo = document.getElementById("memo");
+  memo.value = localStorage.getItem(KEYS.memo) || "";
+  let t;
+  memo.addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(() => { if (save(KEYS.memo, memo.value)) document.getElementById("memoState").textContent = "Notes enregistrées."; }, 400);
+  });
+
+  document.getElementById("export").addEventListener("click", () => {
+    const data = { app: "courbe-de-poids", version: 1, exporte_le: new Date().toISOString(),
+      pesees, objectifs, memo: localStorage.getItem(KEYS.memo) || "" };
+    const blob = new Blob([JSON.stringify(data, null, 4)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `courbe-de-poids-${toISO(today())}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("Données exportées");
+  });
+
+  document.getElementById("import").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      const clean = (arr) => arr.filter((x) => x && parseKg(x.poids) !== null && parseAnyDate(x.date))
+        .map((x) => ({ poids: String(parseKg(x.poids)), date: String(x.date) }));
+      let addP = [], addO = [], newMemo = null;
+      if (Array.isArray(data)) {
+        // Anciens fichiers pesees.json / objectifs.json : on reconnaît le format des dates
+        const items = clean(data);
+        if (items.length && items.every((x) => /^\d{4}-\d{2}-\d{2}/.test(x.date))) addO = items;
+        else addP = items;
+      } else if (data && typeof data === "object") {
+        addP = Array.isArray(data.pesees) ? clean(data.pesees) : [];
+        addO = Array.isArray(data.objectifs) ? clean(data.objectifs) : [];
+        if (typeof data.memo === "string") newMemo = data.memo;
+      }
+      if (!addP.length && !addO.length && newMemo === null) throw new Error("vide");
+
+      const msg = [addP.length && `${addP.length} pesée(s)`, addO.length && `${addO.length} objectif(s)`].filter(Boolean).join(" et ");
+      if (!(await confirmAsk(`Importer ${msg || "les notes"} ? Les doublons (même date et même poids) seront ignorés.`, "Importer"))) return;
+
+      const key = (x) => `${toISO(parseAnyDate(x.date))}|${parseKg(x.poids)}`;
+      const merge = (target, add) => { const seen = new Set(target.map(key)); add.forEach((x) => { if (!seen.has(key(x))) { target.push(x); seen.add(key(x)); } }); };
+      merge(pesees, addP); merge(objectifs, addO);
+      savePesees(); saveObjectifs();
+      if (newMemo !== null && newMemo.trim() && !memo.value.trim()) save(KEYS.memo, newMemo);
+      render();
+      toast("Import terminé");
+    } catch (err) {
+      toast("Ce fichier n’est pas reconnu : choisissez un export de l’application, pesees.json ou objectifs.json.");
+    }
+  });
+}
+
+/* ============================================================
+   Démarrage
+   ============================================================ */
+render();
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Service worker :", e)));
+}
+</script>
+</body>
+</html>
