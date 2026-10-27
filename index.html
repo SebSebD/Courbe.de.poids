@@ -588,7 +588,7 @@
       width: 100%;
       height: auto;
       min-width: 320px;
-      touch-action: pan-y;
+      touch-action: none;
       user-select: none;
       -webkit-user-select: none;
       cursor: grab;
@@ -1975,7 +1975,13 @@
       chartEl.addEventListener("pointerdown", (e) => {
         ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (ptrs.size === 1) pan = { x0: e.clientX, c0: state.cursor, moved: false, id: e.pointerId };
-        else if (ptrs.size === 2) { pan = null; pinch = { d0: pinchDist(), len0: lenDays() }; }
+        else if (ptrs.size === 2) {
+          pan = null;
+          // Le graphique est redessiné à chaque pas : on capture les deux doigts pour ne pas perdre leurs événements
+          ptrs.forEach((_, id) => { try { chartEl.setPointerCapture(id); } catch (_) { } });
+          const w = windowRange();
+          pinch = { d0: pinchDist(), len0: Math.max(1, (w.end - w.start) / DAY) };
+        }
       });
       chartEl.addEventListener("pointermove", (e) => {
         if (!ptrs.has(e.pointerId)) return;
