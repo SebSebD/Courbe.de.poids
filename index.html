@@ -799,7 +799,14 @@
       color: var(--objectif);
     }
 
-    .chart-wrap .tip {
+    .tip-layer {
+      position: absolute;
+      z-index: 3;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .tip {
       font-size: 13px;
       font-weight: 600;
       paint-order: stroke;
@@ -1892,15 +1899,27 @@
         ${line(P, "var(--poids)")}${dots(P, "var(--poids)", false, "P")}
         <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5" opacity=".55"/>
       </g>
-      <rect id="tipR" rx="6" fill="var(--surface)" stroke="var(--ok)" stroke-width="2" visibility="hidden"/>
-      <text class="tip" id="tipV" x="${W - R - 4}" y="${T + 14}" text-anchor="end"></text>
-      <text class="tip" id="tipD" x="${W - R - 4}" y="${T + 30}" text-anchor="end" fill="var(--muted)"></text>
-      <text class="tip" id="tipS" x="${W - R - 4}" y="${T + 46}" text-anchor="end" fill="var(--sim)"></text>
     </svg>
     <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
       <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
       ${tr ? `<span><i style="border-color:var(--sim);border-top-style:dotted"></i>Tendance</span>` : ""}</div>`;
         document.getElementById("chart").innerHTML = svg;
+
+        // Les infos du point sont dans une couche à part, au-dessus des cases à cocher
+        const cbox = document.querySelector(".chart-box");
+        let layer = document.getElementById("tipLayer");
+        if (!layer) {
+          layer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          layer.id = "tipLayer"; layer.setAttribute("class", "tip-layer");
+          cbox.appendChild(layer);
+        }
+        const sr = document.querySelector("#chart svg").getBoundingClientRect(), cr = cbox.getBoundingClientRect();
+        layer.setAttribute("viewBox", `0 0 ${W} ${H}`);
+        Object.assign(layer.style, { left: `${sr.left - cr.left}px`, top: `${sr.top - cr.top}px`, width: `${sr.width}px`, height: `${sr.height}px` });
+        layer.innerHTML = `<rect id="tipR" rx="6" fill="var(--surface)" stroke="var(--ok)" stroke-width="2" visibility="hidden"/>
+      <text class="tip" id="tipV" x="${W - R - 4}" y="${T + 14}" text-anchor="end"></text>
+      <text class="tip" id="tipD" x="${W - R - 4}" y="${T + 30}" text-anchor="end" fill="var(--muted)"></text>
+      <text class="tip" id="tipS" x="${W - R - 4}" y="${T + 46}" text-anchor="end" fill="var(--sim)"></text>`;
 
         // Valeurs au curseur
         const vp = interpolate(P, cd), vo = interpolate(O, cd);
@@ -2046,7 +2065,21 @@
           if (c !== state.cursor) { setCursor(c); draw(); }
         }
       });
+      // Double toucher (iPad : le navigateur n'envoie pas d'événement « dblclick » tactile)
+      let lastTap = null;
+      const cycleZoom = () => {
+        const isGlobal = state.mode === "global" && state.auto && state.t === 500 && !state.zoomReal;
+        if (isGlobal && P.length > 1) state.zoomReal = true;
+        else setMode("global");
+        state.lastCycle = Date.now();
+        draw();
+      };
       const endPtr = (e) => {
+        if (e.type === "pointerup" && e.pointerType === "touch" && ptrs.size === 1 && pan && !pan.moved && !pinch && e.pointerId === pan.id) {
+          const now = Date.now();
+          if (lastTap && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) { lastTap = null; cycleZoom(); }
+          else lastTap = { t: now, x: e.clientX, y: e.clientY };
+        }
         ptrs.delete(e.pointerId);
         if (ptrs.size < 2) pinch = null;
         if (ptrs.size === 0) { pan = null; setTimeout(() => { state.dragged = false; }, 0); }
@@ -2065,12 +2098,7 @@
       document.getElementById("prevPt").addEventListener("click", () => goStop(-1));
       document.getElementById("nextPt").addEventListener("click", () => goStop(1));
       // Double clic : Global, puis zoom sur la période des pesées, puis retour à Global
-      chartEl.addEventListener("dblclick", () => {
-        const isGlobal = state.mode === "global" && state.auto && state.t === 500 && !state.zoomReal;
-        if (isGlobal && P.length > 1) state.zoomReal = true;
-        else setMode("global");
-        draw();
-      });
+      chartEl.addEventListener("dblclick", () => { if (!(Date.now() - (state.lastCycle || 0) < 600)) cycleZoom(); });
       // Clic sur Poids réel / Objectif : le curseur saute de point en point (en boucle), échelle inchangée, point mis en évidence en vert
       const loopTo = (list, sid) => {
         const pts = list.map((p, i) => ({ t: +p.d, i })).sort((x, y) => x.t - y.t);
