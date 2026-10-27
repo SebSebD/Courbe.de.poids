@@ -614,6 +614,14 @@
       padding: 8px 12px 4px;
     }
 
+    .legend {
+      align-items: center;
+    }
+
+    .legend .check {
+      margin-left: auto;
+    }
+
     .legend i {
       display: inline-block;
       width: 18px;
@@ -632,6 +640,11 @@
       justify-content: space-between;
       gap: 12px;
       font-weight: 600;
+    }
+
+    .ctrl label.scalelab {
+      justify-content: flex-start;
+      gap: 8px;
     }
 
     .ctrl label output {
@@ -695,11 +708,65 @@
     }
 
     .modes {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 6px;
+      margin: 8px 0 6px;
+    }
+
+    .modes-group {
       display: flex;
       justify-content: center;
       gap: 6px;
-      margin-top: 10px;
-      flex-wrap: nowrap;
+    }
+
+    .modes .lastbtn {
+      justify-self: end;
+    }
+
+    @media (max-width: 700px) {
+      .modes {
+        grid-template-columns: auto auto;
+        justify-content: space-between;
+      }
+
+      .modes-side {
+        display: none;
+      }
+    }
+
+    .curhead {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: baseline;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .curhead output {
+      justify-self: end;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .curhead .linkbtn,
+    .modes button.lastbtn {
+      text-decoration: underline;
+    }
+
+    .curhead {
+      position: relative;
+    }
+
+    .curhead .linkbtn {
+      position: absolute;
+      left: 50%;
+      bottom: -7px;
+      transform: translateX(-50%);
+      font-size: 0.78rem;
+      font-weight: 500;
+      white-space: nowrap;
     }
 
     .modes button {
@@ -722,6 +789,21 @@
       color: #fff;
     }
 
+    .modes button.lastbtn {
+      border: 2px solid transparent;
+      background: none;
+      padding: 7px 6px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .modes button.lastbtn[aria-pressed=true] {
+      background: none;
+      border-color: var(--ok);
+      color: var(--ink);
+    }
+
     .chart-box {
       position: relative;
       margin-top: 12px;
@@ -739,6 +821,18 @@
       padding: 4px 8px;
       border-radius: 10px;
       background: color-mix(in srgb, var(--surface) 80%, transparent);
+    }
+
+    .checks .check {
+      flex-direction: row-reverse;
+    }
+
+    .chk-p {
+      color: var(--poids);
+    }
+
+    .chk-o {
+      color: var(--objectif);
     }
 
     .check:has(#simChk) {
@@ -804,6 +898,12 @@
       z-index: 3;
       pointer-events: none;
       overflow: visible;
+    }
+
+    .tip-layer rect,
+    .tip-layer text {
+      pointer-events: all;
+      cursor: pointer;
     }
 
     .tip {
@@ -1680,31 +1780,37 @@
       <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
         return;
       }
-      const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: true };
+      const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: true, last: false };
       const allDates = [...P, ...O].map((p) => p.d);
       const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
 
       app.innerHTML = `
     <div class="graph-layout">
-      <div class="modes" id="modes">
-        <button type="button" data-mode="mois" aria-pressed="false">Au mois</button>
-        <button type="button" data-mode="trimestre" aria-pressed="false">Au trimestre</button>
-        <button type="button" data-mode="annee" aria-pressed="false">À l’année</button>
-        <button type="button" data-mode="global" aria-pressed="true">Global</button>
-      </div>
       <div class="ctrl">
-        <label for="scale">Échelle <output id="scaleOut"></output></label>
+        <label for="scale" class="scalelab">Échelle <output id="scaleOut"></output></label>
+        <div class="modes" id="modes">
+          <span class="modes-side"></span>
+          <div class="modes-group">
+            <button type="button" data-mode="mois" aria-pressed="false">Au mois</button>
+            <button type="button" data-mode="trimestre" aria-pressed="false">Au trimestre</button>
+            <button type="button" data-mode="annee" aria-pressed="false">À l’année</button>
+            <button type="button" data-mode="global" aria-pressed="true">Global</button>
+          </div>
+          ${P.length ? `<button type="button" class="lastbtn" id="lastBtn" aria-pressed="false">Dernière pesée</button>` : ""}
+        </div>
         <input type="range" id="scale" min="0" max="1000" step="1">
       </div>
       <div class="chart-box">
         <div class="checks">
-          <label class="check"><input type="checkbox" id="showVals" checked> Affichage données</label>
+          <label class="check"><input type="checkbox" id="showVals"> Affichage données</label>
+          <label class="check chk-p"><input type="checkbox" id="pesChk" checked> Pesée</label>
+          <label class="check chk-o"><input type="checkbox" id="objChk" checked> Objectif</label>
           <label class="check"><input type="checkbox" id="simChk" checked> Simulation</label>
         </div>
         <div class="chart-wrap" id="chart"></div>
       </div>
       <div class="ctrl">
-        <label for="cur"><button type="button" class="linkbtn" id="curToday" title="Aller à aujourd’hui">Curseur</button> <output id="curOut"></output></label>
+        <div class="curhead"><label for="cur">Curseur</label><button type="button" class="linkbtn" id="curToday" title="Placer le curseur à aujourd’hui">Aujourd’hui</button><output id="curOut"></output></div>
         <div class="cursor-row">
           <button type="button" class="arrow" id="prevPt" aria-label="Point précédent">◀</button>
           <button type="button" class="arrow" id="nextPt" aria-label="Point suivant">▶</button>
@@ -1799,16 +1905,17 @@
         return { start, end, tr, simEnd, tMax: tEnd };
       }
 
-      function setCursor(n) { state.cursor = n; state.auto = false; }
+      function setCursor(n) { state.cursor = n; state.auto = false; state.last = false; }
       function setMode(m) {
-        state.mode = m; state.t = 500; state.auto = true; state.zoomReal = false;
+        state.mode = m; state.t = 500; state.auto = true; state.zoomReal = false; state.last = false;
         state.cursor = Math.max(0, dayIdx(today()));
         scale.value = state.t;
       }
 
       // Points parcourus par les flèches : pesées, puis objectifs au-delà
       function stops() {
-        return [...P.map((p, i) => ({ t: +p.d, key: "P" + i, o: 0 })), ...O.map((p, i) => ({ t: +p.d, key: "O" + i, o: 1 }))]
+        const showP = document.getElementById("pesChk").checked, showO = document.getElementById("objChk").checked;
+        return [...(showP ? P : []).map((p, i) => ({ t: +p.d, key: "P" + i, o: 0 })), ...(showO ? O : []).map((p, i) => ({ t: +p.d, key: "O" + i, o: 1 }))]
           .sort((a, b) => a.t - b.t || a.o - b.o);
       }
       function goStop(dir) {
@@ -1819,11 +1926,26 @@
           : (i >= 0 ? L[i - 1] : L.filter((s) => s.t < c).pop());
         if (!s) return;
         setCursor(dayIdx(new Date(s.t)));
+        enableVals();
         state.hover = null; state.pin = s.key;
         draw();
       }
 
       state.cursor = Math.max(0, dayIdx(today()));
+
+      // « Aujourd'hui » se place sous le curseur, à la position de la date du jour sur le slider
+      function placeToday() {
+        const btn = document.getElementById("curToday"), head = btn.parentElement, lab = head.querySelector("label"), out = head.querySelector("output");
+        const hr = head.getBoundingClientRect(), cr = cur.getBoundingClientRect();
+        if (!cr.width) return;
+        const thumb = 16, max = Math.max(1, +cur.max);
+        const frac = Math.min(1, Math.max(0, dayIdx(today()) / max));
+        const half = btn.offsetWidth / 2;
+        let x = cr.left - hr.left + thumb / 2 + frac * (cr.width - thumb);
+        const lo = lab.getBoundingClientRect().right - hr.left + 8 + half, hi = out.getBoundingClientRect().left - hr.left - 8 - half;
+        x = hi >= lo ? Math.min(hi, Math.max(lo, x)) : x;
+        btn.style.left = `${x}px`;
+      }
 
       function draw() {
         const { start, end, tr, simEnd, tMax } = windowRange();
@@ -1843,8 +1965,9 @@
 
         // Plage verticale : valeurs visibles uniquement
         const inWin = (p) => p.d >= start && p.d <= end;
-        const vis = [...P.filter(inWin), ...O.filter(inWin), ...simPts.filter(inWin)].map((p) => p.kg);
-        [P, O].forEach((S) => { const v = interpolate(S, start); if (v !== null) vis.push(v); const w = interpolate(S, end); if (w !== null) vis.push(w); });
+        const showP = document.getElementById("pesChk").checked, showO = document.getElementById("objChk").checked;
+        const vis = [...(showP ? P.filter(inWin) : []), ...(showO ? O.filter(inWin) : []), ...simPts.filter(inWin)].map((p) => p.kg);
+        [showP && P, showO && O].filter(Boolean).forEach((S) => { const v = interpolate(S, start); if (v !== null) vis.push(v); const w = interpolate(S, end); if (w !== null) vis.push(w); });
         if (!vis.length) [...P, ...O].forEach((p) => vis.push(p.kg));
         let ymin = Math.floor(Math.min(...vis) - 1), ymax = Math.ceil(Math.max(...vis) + 1);
         const span = ymax - ymin;
@@ -1886,7 +2009,7 @@
         const dots = (pts, color, hollow, sid) => pts.map((p, i) => {
           const cxp = x(p.d).toFixed(1), cyp = y(p.kg).toFixed(1), fill = hollow ? "var(--surface)" : color;
           return `<circle class="dot" data-k="${sid}${i}" data-fill="${fill}" data-stroke="${color}" cx="${cxp}" cy="${cyp}" r="2.25" fill="${fill}" stroke="${color}" stroke-width="1"/>` +
-            (showVals.checked ? `<circle class="hit" data-k="${sid}${i}" cx="${cxp}" cy="${cyp}" r="10" fill="transparent"/>` : "");
+            `<circle class="hit" data-k="${sid}${i}" cx="${cxp}" cy="${cyp}" r="10" fill="transparent"/>`;
         }).join("");
 
         const cx = x(cd);
@@ -1894,16 +2017,22 @@
       <defs><clipPath id="clip"><rect x="${L - 6}" y="${T - 6}" width="${W - L - R + 12}" height="${H - T - B + 12}"/></clipPath></defs>
       ${g}
       <g clip-path="url(#clip)">
-        ${line(O, "var(--objectif)", "7 6")}${dots(O, "var(--objectif)", true, "O")}
+        ${showO ? line(O, "var(--objectif)", "7 6") + dots(O, "var(--objectif)", true, "O") : ""}
         ${line(simPts, "var(--sim)", "3 5")}
-        ${line(P, "var(--poids)")}${dots(P, "var(--poids)", false, "P")}
+        ${showP ? line(P, "var(--poids)") + dots(P, "var(--poids)", false, "P") : ""}
         <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5" opacity=".55"/>
       </g>
     </svg>
     <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
       <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
       ${tr ? `<span><i style="border-color:var(--sim);border-top-style:dotted"></i>Tendance</span>` : ""}</div>`;
+        // La case « Affichage données » est mise à l'abri avant que la légende soit redessinée
+        const valsLabel = document.getElementById("showVals").closest("label");
+        document.querySelector(".checks").appendChild(valsLabel);
         document.getElementById("chart").innerHTML = svg;
+
+        // La case « Affichage données » vit dans la ligne de légende, à droite (la légende est redessinée à chaque pas)
+        document.querySelector("#chart .legend").appendChild(valsLabel);
 
         // Les infos du point sont dans une couche à part, au-dessus des cases à cocher
         const cbox = document.querySelector(".chart-box");
@@ -1912,6 +2041,13 @@
           layer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
           layer.id = "tipLayer"; layer.setAttribute("class", "tip-layer");
           cbox.appendChild(layer);
+          // Un clic sur l'encadré vert le fait disparaître
+          layer.addEventListener("click", () => {
+            state.pin = null; state.hover = null; state.last = false;
+            const lb = document.getElementById("lastBtn");
+            if (lb) lb.setAttribute("aria-pressed", "false");
+            refreshTip();
+          });
         }
         const sr = document.querySelector("#chart svg").getBoundingClientRect(), cr = cbox.getBoundingClientRect();
         layer.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -1924,17 +2060,22 @@
         // Valeurs au curseur
         const vp = interpolate(P, cd), vo = interpolate(O, cd);
         // Au-delà des pesées, on affiche la simulation si elle est présente
-        const vs = vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
+        // Le jour même, on n'affiche pas de poids simulé (il ne doit pas se mêler au poids réel)
+        const onToday = +cd === +today();
+        const vs = !onToday && vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
         const vShow = vp !== null ? vp : vs;
         const isSim = vp === null && vs !== null;
         document.getElementById("lP").textContent = isSim ? "Poids simulé" : "Poids réel";
         document.getElementById("cP").classList.toggle("sim", isSim);
         document.getElementById("cD").classList.toggle("sim", isSim);
         cur.value = state.cursor;
+        placeToday();
         document.getElementById("values").hidden = !showVals.checked;
         document.getElementById("curOut").textContent = formatFr(cd);
         document.getElementById("scaleOut").textContent = fmtLen(state.zoomReal && P.length > 1 ? (end - start) / DAY : lenDays());
         document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
+        const lb = document.getElementById("lastBtn");
+        if (lb) lb.setAttribute("aria-pressed", state.last);
         document.getElementById("vP").textContent = vShow === null ? "--" : `${fmtKg(vShow)} kg`;
         document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
         document.getElementById("vD").textContent = vShow === null || vo === null ? "--" : `${fmtDelta(vShow - vo)} kg`;
@@ -1965,6 +2106,7 @@
       }
 
       const showVals = document.getElementById("showVals");
+      const enableVals = () => { showVals.checked = true; };
       state.hover = null; state.pin = null;
       // Point affiché en haut à droite : le survol l'emporte sur le clic
       function refreshTip() {
@@ -1981,7 +2123,7 @@
         tv.textContent = pt ? `${fmtKg(pt.kg)} kg` : "";
         td.textContent = pt ? shortFr(pt.d) : "";
         tv.setAttribute("fill", key && key[0] === "O" ? "var(--objectif)" : "var(--poids)");
-        const sv = pt && state.simAt && P.length && pt.d >= P[P.length - 1].d && pt.d <= state.simEnd ? state.simAt(pt.d) : null;
+        const cdNow = dateAt(state.cursor), sv = pt && key[0] === "O" && +cdNow !== +today() && state.simAt && P.length && pt.d >= P[P.length - 1].d && pt.d <= state.simEnd ? state.simAt(pt.d) : null;
         ts.textContent = sv === null ? "" : `${fmtKg(sv)} kg simulé`;
         // Placement à côté du point, décalé vers le haut-droite (ou ailleurs si le bord est atteint)
         const dot = pt && document.querySelector(`#chart circle.dot[data-k="${key}"]`);
@@ -2066,7 +2208,24 @@
         }
       });
       // Double toucher (iPad : le navigateur n'envoie pas d'événement « dblclick » tactile)
-      let lastTap = null;
+      // Détection indépendante des événements « pointer » : touchstart / touchend
+      let lastTap = null, touch = null;
+      chartEl.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY, t: Date.now(), ok: true } : (touch && { ...touch, ok: false });
+      }, { passive: true });
+      chartEl.addEventListener("touchmove", (e) => {
+        const t = e.touches[0];
+        if (touch && (e.touches.length > 1 || Math.hypot(t.clientX - touch.x, t.clientY - touch.y) > 12)) touch.ok = false;
+      }, { passive: true });
+      chartEl.addEventListener("touchend", (e) => {
+        if (!touch || e.touches.length) return;
+        const c = e.changedTouches[0], now = Date.now(), tap = touch.ok && now - touch.t < 500;
+        touch = null;
+        if (!tap) { lastTap = null; return; }
+        if (lastTap && now - lastTap.t < 450 && Math.hypot(c.clientX - lastTap.x, c.clientY - lastTap.y) < 40) { lastTap = null; cycleZoom(); }
+        else lastTap = { t: now, x: c.clientX, y: c.clientY };
+      }, { passive: true });
       const cycleZoom = () => {
         const isGlobal = state.mode === "global" && state.auto && state.t === 500 && !state.zoomReal;
         if (isGlobal && P.length > 1) state.zoomReal = true;
@@ -2075,11 +2234,6 @@
         draw();
       };
       const endPtr = (e) => {
-        if (e.type === "pointerup" && e.pointerType === "touch" && ptrs.size === 1 && pan && !pan.moved && !pinch && e.pointerId === pan.id) {
-          const now = Date.now();
-          if (lastTap && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) { lastTap = null; cycleZoom(); }
-          else lastTap = { t: now, x: e.clientX, y: e.clientY };
-        }
         ptrs.delete(e.pointerId);
         if (ptrs.size < 2) pinch = null;
         if (ptrs.size === 0) { pan = null; setTimeout(() => { state.dragged = false; }, 0); }
@@ -2090,9 +2244,18 @@
       chartEl.addEventListener("mouseout", (e) => { if (keyOf(e)) { state.hover = null; refreshTip(); } });
       chartEl.addEventListener("click", (e) => {
         const k = keyOf(e);
-        if (k) { state.pin = state.pin === k ? null : k; refreshTip(); }
+        if (k) {
+          // Un clic sur un point affiche ses infos (et active « Affichage données »)
+          const wasOff = !showVals.checked;
+          if (wasOff) enableVals();
+          state.pin = !wasOff && state.pin === k ? null : k;
+          state.last = false;
+          const lb = document.getElementById("lastBtn");
+          if (lb) lb.setAttribute("aria-pressed", "false");
+          if (wasOff) draw(); else refreshTip();
+        }
       });
-      showVals.addEventListener("change", () => { state.hover = null; state.pin = null; draw(); });
+      showVals.addEventListener("change", () => { state.hover = null; state.pin = null; state.last = false; draw(); });
       cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
       document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
       document.getElementById("prevPt").addEventListener("click", () => goStop(-1));
@@ -2106,16 +2269,32 @@
         const c = +dateAt(state.cursor);
         const nxt = pts.find((p) => p.t > c) ?? pts[0];
         setCursor(dayIdx(new Date(nxt.t)));
+        enableVals();
         state.hover = null; state.pin = sid + nxt.i;
         draw();
       };
       document.getElementById("cP").addEventListener("click", () => loopTo(P, "P"));
       document.getElementById("cO").addEventListener("click", () => loopTo(O, "O"));
       scale.addEventListener("input", () => { state.t = +scale.value; state.zoomReal = false; draw(); });
+      // Dernière pesée : curseur sur le dernier point réel, infos encadrées en vert ; perdu dès que le curseur bouge
+      const lastBtn = document.getElementById("lastBtn");
+      if (lastBtn) lastBtn.addEventListener("click", () => {
+        // Bouton déjà actif : un nouveau clic masque les infos
+        if (state.last) { state.last = false; state.pin = null; state.hover = null; draw(); return; }
+        setCursor(dayIdx(P[P.length - 1].d));
+        enableVals();
+        state.last = true; state.hover = null; state.pin = "P" + (P.length - 1);
+        draw();
+      });
       document.getElementById("modes").addEventListener("click", (e) => {
         const b = e.target.closest("button[data-mode]");
         if (b) { setMode(b.dataset.mode); draw(); }
       });
+      [["pesChk", "P"], ["objChk", "O"]].forEach(([id, sid]) => document.getElementById(id).addEventListener("change", (e) => {
+        if (!e.currentTarget.checked && state.pin && state.pin[0] === sid) { state.pin = null; state.last = false; }
+        state.hover = null;
+        draw();
+      }));
       document.getElementById("simChk").addEventListener("change", (e) => {
         state.sim = e.currentTarget.checked;
         draw();
