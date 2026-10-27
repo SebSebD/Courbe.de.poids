@@ -24,7 +24,8 @@
   --poids: #1f5f8b;
   --poids-soft: #e1edf6;
   --objectif: #c4473a;
-  --sim: #7a5aa6;
+  --sim: #a67c00;
+  --ok: #2e9e4f;
   --danger: #b3261e;
   --on-accent: #ffffff;
   color-scheme: light;
@@ -42,7 +43,8 @@
     --poids: #6fb1e0;
     --poids-soft: #1d3446;
     --objectif: #ee7b6e;
-    --sim: #b49ae0;
+    --sim: #d9a520;
+    --ok: #5fd38a;
     --danger: #f2877e;
     --on-accent: #0c1620;
     color-scheme: dark;
@@ -157,7 +159,7 @@ p { margin: 0 0 12px; }
 
 /* Graphique */
 .chart-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 8px 4px 4px; overflow-x: auto; }
-.chart-wrap svg { display: block; width: 100%; height: auto; min-width: 320px; touch-action: pan-y; }
+.chart-wrap svg { display: block; width: 100%; height: auto; min-width: 320px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; }
 .chart-wrap .ax { fill: var(--muted); font-size: 12px; font-family: inherit; }
 .chart-wrap .grid { stroke: var(--line); stroke-width: 1; }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); padding: 8px 12px 4px; }
@@ -166,10 +168,22 @@ p { margin: 0 0 12px; }
 .ctrl label { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
 .ctrl label output { font-weight: 500; color: var(--muted); }
 input[type=range] { width: 100%; accent-color: var(--poids); margin: 8px 0 0; height: 32px; }
+.cursor-row { display: flex; align-items: center; gap: 6px; }
+.cursor-row input[type=range] { flex: 1; min-width: 0; }
+.cursor-row .arrow { flex: none; width: 40px; height: 40px; margin-top: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; font-size: 1.1rem; cursor: pointer; }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; text-decoration: underline dotted; cursor: pointer; }
+.modes { display: flex; justify-content: center; gap: 6px; margin-top: 10px; flex-wrap: nowrap; }
+.modes button { flex: 0 1 auto; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; font: inherit; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.modes button[aria-pressed=true] { background: var(--poids); border-color: var(--poids); color: #fff; }
+.check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 600; cursor: pointer; }
+.check input { width: 22px; height: 22px; accent-color: var(--poids); }
 .values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
 .values div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
 .values small { display: block; color: var(--muted); font-size: 0.8rem; }
 .values b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.values .sim b { color: var(--sim); }
+.chart-wrap .tip { font-size: 13px; font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart-wrap .hit { cursor: pointer; }
 .simtxt { margin-top: 12px; padding-left: 12px; border-left: 3px solid var(--sim); }
 @media (orientation: landscape) and (max-height: 560px) {
   main { max-width: 1000px; }
@@ -577,74 +591,148 @@ function viewGraphique() {
       <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
     return;
   }
-  const state = { months: 1, cursor: 100, sim: false };
+  const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: false };
   const allDates = [...P, ...O].map((p) => p.d);
   const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
-  const spanMonths = Math.ceil((lastAll - first) / DAY / 30.44) || 1;
-  state.months = Math.min(36, Math.max(1, spanMonths));
 
   app.innerHTML = `
     <div class="graph-layout">
       <div>
         <div class="chart-wrap" id="chart"></div>
+        <div class="values" id="values" hidden>
+          <div id="cP"><small id="lP">Poids réel</small><b id="vP">--</b></div>
+          <div><small>Objectif</small><b id="vO">--</b></div>
+          <div id="cD"><small>Différence</small><b id="vD">--</b></div>
+        </div>
       </div>
       <div>
         <div class="ctrl">
-          <label for="cur">Curseur <output id="curOut"></output></label>
-          <input type="range" id="cur" min="0" max="100" step="1">
+          <label for="cur"><button type="button" class="linkbtn" id="curToday" title="Aller à aujourd’hui">Curseur</button> <output id="curOut"></output></label>
+          <div class="cursor-row">
+            <button type="button" class="arrow" id="prevPt" aria-label="Point précédent">◀</button>
+            <button type="button" class="arrow" id="nextPt" aria-label="Point suivant">▶</button>
+            <input type="range" id="cur" min="0" max="100" step="1">
+          </div>
         </div>
         <div class="ctrl">
           <label for="scale">Échelle <output id="scaleOut"></output></label>
-          <input type="range" id="scale" min="1" max="36" step="1">
+          <input type="range" id="scale" min="0" max="1000" step="1">
+          <div class="modes" id="modes">
+            <button type="button" data-mode="mois" aria-pressed="false">Au mois</button>
+            <button type="button" data-mode="trimestre" aria-pressed="false">Au trimestre</button>
+            <button type="button" data-mode="annee" aria-pressed="false">À l’année</button>
+            <button type="button" data-mode="global" aria-pressed="true">Global</button>
+          </div>
         </div>
-        <div class="values">
-          <div><small>Poids réel</small><b id="vP">--</b></div>
-          <div><small>Objectif</small><b id="vO">--</b></div>
-          <div><small>Différence</small><b id="vD">--</b></div>
-        </div>
+        <label class="check"><input type="checkbox" id="showVals"> Afficher les données au curseur</label>
         <div class="stack"><button class="btn" id="simBtn" aria-pressed="false">Simulation</button></div>
         <p class="simtxt" id="simTxt" hidden></p>
       </div>
     </div>`;
 
   const cur = document.getElementById("cur"), scale = document.getElementById("scale");
-  scale.value = state.months;
+  scale.value = state.t;
 
-  function windowRange() {
+  const tMin = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+  const dateAt = (n) => new Date(tMin.getFullYear(), tMin.getMonth(), tMin.getDate() + n);
+  const dayIdx = (d) => Math.round((d - tMin) / DAY);
+
+  // Échelles : [mini, défaut (milieu du slider), maxi] en jours ; Global dépend des données
+  const Q = 91.3125;
+  function dataEnd() {
+    const { simEnd } = simInfo();
+    return new Date(Math.max(+lastAll, simEnd ? +simEnd : 0));
+  }
+  function simInfo() {
     const tr = state.sim ? trend(P) : null;
-    let end = new Date(lastAll);
     let simEnd = null;
     if (tr) {
       const lastP = P[P.length - 1].d;
       const lastO = O.length ? O[O.length - 1].d : null;
       simEnd = lastO && lastO > lastP ? lastO : new Date(+lastP + 30 * DAY);
-      if (simEnd > end) end = simEnd;
     }
-    const start = new Date(end); start.setMonth(start.getMonth() - state.months);
-    if (start < first && state.months >= spanMonths) start.setTime(first);
-    if (end - start < 7 * DAY) start.setTime(+end - 7 * DAY);
-    return { start, end, tr, simEnd };
+    return { tr, simEnd };
+  }
+  function scaleDays() {
+    if (state.mode === "mois") return [1, 31, Q];
+    if (state.mode === "trimestre") return [7, Q, 365];
+    if (state.mode === "annee") return [7, 365, 730];
+    const base = Math.max(7, (dataEnd() - tMin) / DAY * 1.1);
+    return [base / 3, base, base * 3];
+  }
+  // Interpolation logarithmique par moitié : le milieu du slider vaut exactement la valeur par défaut
+  function lenDays() {
+    const [mn, mid, mx] = scaleDays(), u = state.t / 1000;
+    return u <= 0.5 ? mn * Math.pow(mid / mn, u * 2) : mid * Math.pow(mx / mid, (u - 0.5) * 2);
+  }
+  function fmtLen(d) {
+    if (d < 60) return `${Math.round(d)} jour${Math.round(d) > 1 ? "s" : ""}`;
+    if (d < 700) return `${(d / 30.44).toFixed(1).replace(".", ",")} mois`;
+    return `${(d / 365.25).toFixed(1).replace(".", ",")} ans`;
   }
 
-  // Place le curseur sur la dernière pesée par défaut
-  (function initCursor() {
-    const { start, end } = windowRange();
-    if (P.length) state.cursor = Math.round(Math.max(0, Math.min(1, (P[P.length - 1].d - start) / (end - start))) * 100);
-    cur.value = state.cursor;
-  })();
+  function windowRange() {
+    const { tr, simEnd } = simInfo();
+    const tEnd = new Date(Math.max(+lastAll, +today(), simEnd ? +simEnd : 0));
+    const len = lenDays() * DAY;
+    // Centre : cursor-centré ; en mode auto, Année et Global partent de leur vue par défaut
+    // puis tendent vers le curseur à mesure que l'échelle s'éloigne du milieu du slider
+    let centre = +dateAt(state.cursor);
+    if (state.auto) {
+      if (state.mode === "annee" || state.mode === "global") {
+        const def = state.mode === "annee"
+          ? +new Date(today().getFullYear(), 0, 1) + 182.5 * DAY
+          : +tMin + Math.max(7 * DAY, (dataEnd() - tMin) * 1.1) / 2;
+        const w = Math.abs(state.t - 500) / 500;
+        centre = def + (+today() - def) * w;
+      } else centre = +today();
+    }
+    let start = new Date(centre - len / 2), end;
+    if (state.mode === "annee" && state.auto) {
+      // Zoom ancré sur aujourd'hui : sa position à l'écran passe de celle de la vue par défaut au centre
+      const jan1 = +new Date(today().getFullYear(), 0, 1);
+      const p0 = Math.min(1, Math.max(0, (+today() - jan1) / (365 * DAY)));
+      const w = Math.abs(state.t - 500) / 500;
+      start = new Date(+today() - (p0 + (0.5 - p0) * w) * len);
+      end = new Date(+start + len);
+    }
+    else {
+      const tEndView = Math.max(+tEnd, +tMin + (dataEnd() - tMin) * 1.1);
+      if (start < tMin) start = new Date(tMin);
+      end = new Date(+start + len);
+      if (end > tEndView) { end = new Date(Math.max(tEndView, +tMin + len)); start = new Date(+end - len); }
+    }
+    return { start, end, tr, simEnd, tMax: tEnd };
+  }
+
+  function setCursor(n) { state.cursor = n; state.auto = false; }
+  function setMode(m) {
+    state.mode = m; state.t = 500; state.auto = true;
+    state.cursor = Math.max(0, dayIdx(today()));
+    scale.value = state.t;
+  }
+
+  // Points parcourus par les flèches : pesées, puis objectifs au-delà
+  function stops() {
+    const lastP = P.length ? P[P.length - 1].d : -Infinity;
+    return [...new Set([...P.map((p) => +p.d), ...O.filter((p) => p.d > lastP).map((p) => +p.d)])].sort((a, b) => a - b);
+  }
+
+  state.cursor = Math.max(0, dayIdx(today()));
 
   function draw() {
-    const { start, end, tr, simEnd } = windowRange();
+    const { start, end, tr, simEnd, tMax } = windowRange();
+    cur.max = Math.max(1, dayIdx(tMax));
+    state.cursor = Math.min(state.cursor, +cur.max);
     const box = document.getElementById("chart");
     const W = Math.max(320, Math.round(box.clientWidth - 8)), H = Math.round(Math.min(380, Math.max(230, W * 0.6)));
     const L = 40, R = 14, T = 14, B = 34;
-    const cursorDate = new Date(+start + (end - start) * state.cursor / 100 + DAY / 2);
-    const cd = new Date(cursorDate.getFullYear(), cursorDate.getMonth(), cursorDate.getDate());
+    const cd = dateAt(state.cursor);
 
     // Points de la simulation
-    let simPts = [];
+    let simPts = [], at = null;
     if (tr) {
-      const at = (d) => tr.atLast + tr.slope * (d - tr.from) / DAY;
+      at = (d) => tr.atLast + tr.slope * (d - tr.from) / DAY;
       simPts = [{ d: P[P.length - 1].d, kg: P[P.length - 1].kg }, { d: simEnd, kg: at(simEnd) }];
     }
 
@@ -668,14 +756,18 @@ function viewGraphique() {
     }
     // Graduations horizontales
     const ticks = [];
-    if (state.months <= 2) {
+    const lenD = (end - start) / DAY;
+    if (lenD <= 10) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+      for (; d <= end; d.setDate(d.getDate() + 1)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
+    } else if (lenD <= 70) {
       const d = new Date(start); d.setDate(d.getDate() + ((8 - d.getDay()) % 7)); // lundi suivant
       for (; d <= end; d.setDate(d.getDate() + 7)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
     } else {
-      const every = state.months <= 12 ? 1 : 3;
-      const d = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+      const every = lenD <= 400 ? 1 : 3;
+      const d = new Date(start.getFullYear(), start.getMonth() + (start.getDate() === 1 && start.getHours() === 0 ? 0 : 1), 1);
       for (; d <= end; d.setMonth(d.getMonth() + every)) {
-        ticks.push([new Date(d), state.months <= 12 ? MOIS_COURTS[d.getMonth()] : `${MOIS_COURTS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`]);
+        ticks.push([new Date(d), lenD <= 400 ? MOIS_COURTS[d.getMonth()] : `${MOIS_COURTS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`]);
       }
     }
     ticks.forEach(([d, lbl]) => {
@@ -686,19 +778,26 @@ function viewGraphique() {
     const line = (pts, color, dash) => pts.length < 2 ? "" :
       `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : ""}
         points="${pts.map((p) => `${x(p.d).toFixed(1)},${y(p.kg).toFixed(1)}`).join(" ")}"/>`;
-    const dots = (pts, color, hollow) => pts.map((p) =>
-      `<circle cx="${x(p.d).toFixed(1)}" cy="${y(p.kg).toFixed(1)}" r="4.5" fill="${hollow ? "var(--surface)" : color}" stroke="${color}" stroke-width="2"/>`).join("");
+    const dots = (pts, color, hollow, sid) => pts.map((p, i) => {
+      const cxp = x(p.d).toFixed(1), cyp = y(p.kg).toFixed(1), fill = hollow ? "var(--surface)" : color;
+      return `<circle class="dot" data-k="${sid}${i}" data-fill="${fill}" data-stroke="${color}" cx="${cxp}" cy="${cyp}" r="2.25" fill="${fill}" stroke="${color}" stroke-width="1"/>` +
+        (showVals.checked ? `<circle class="hit" data-k="${sid}${i}" cx="${cxp}" cy="${cyp}" r="10" fill="transparent"/>` : "");
+    }).join("");
 
     const cx = x(cd);
     const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique du poids réel et des objectifs">
       <defs><clipPath id="clip"><rect x="${L - 6}" y="${T - 6}" width="${W - L - R + 12}" height="${H - T - B + 12}"/></clipPath></defs>
       ${g}
       <g clip-path="url(#clip)">
-        ${line(O, "var(--objectif)", "7 6")}${dots(O, "var(--objectif)", true)}
+        ${line(O, "var(--objectif)", "7 6")}${dots(O, "var(--objectif)", true, "O")}
         ${line(simPts, "var(--sim)", "3 5")}
-        ${line(P, "var(--poids)")}${dots(P, "var(--poids)")}
+        ${line(P, "var(--poids)")}${dots(P, "var(--poids)", false, "P")}
         <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5" opacity=".55"/>
       </g>
+      <rect id="tipR" rx="6" fill="var(--surface)" stroke="var(--ok)" stroke-width="2" visibility="hidden"/>
+      <text class="tip" id="tipV" x="${W - R - 4}" y="${T + 14}" text-anchor="end"></text>
+      <text class="tip" id="tipD" x="${W - R - 4}" y="${T + 30}" text-anchor="end" fill="var(--muted)"></text>
+      <text class="tip" id="tipS" x="${W - R - 4}" y="${T + 46}" text-anchor="end" fill="var(--sim)"></text>
     </svg>
     <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
       <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
@@ -707,11 +806,24 @@ function viewGraphique() {
 
     // Valeurs au curseur
     const vp = interpolate(P, cd), vo = interpolate(O, cd);
+    // Au-delà des pesées, on affiche la simulation si elle est présente
+    const vs = vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
+    const vShow = vp !== null ? vp : vs;
+    const isSim = vp === null && vs !== null;
+    document.getElementById("lP").textContent = isSim ? "Poids simulé" : "Poids réel";
+    document.getElementById("cP").classList.toggle("sim", isSim);
+    document.getElementById("cD").classList.toggle("sim", isSim);
+    cur.value = state.cursor;
+    document.getElementById("values").hidden = !showVals.checked;
     document.getElementById("curOut").textContent = formatFr(cd);
-    document.getElementById("scaleOut").textContent = `${state.months} mois`;
-    document.getElementById("vP").textContent = vp === null ? "--" : `${fmtKg(vp)} kg`;
+    document.getElementById("scaleOut").textContent = fmtLen(lenDays());
+    document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
+    document.getElementById("vP").textContent = vShow === null ? "--" : `${fmtKg(vShow)} kg`;
     document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
-    document.getElementById("vD").textContent = vp === null || vo === null ? "--" : `${fmtDelta(vp - vo)} kg`;
+    document.getElementById("vD").textContent = vShow === null || vo === null ? "--" : `${fmtDelta(vShow - vo)} kg`;
+
+    state.simAt = at; state.simEnd = simEnd;
+    refreshTip();
 
     // Texte de simulation
     const simTxt = document.getElementById("simTxt");
@@ -735,8 +847,119 @@ function viewGraphique() {
     }
   }
 
-  cur.addEventListener("input", () => { state.cursor = +cur.value; draw(); });
-  scale.addEventListener("input", () => { state.months = +scale.value; draw(); });
+  const showVals = document.getElementById("showVals");
+  state.hover = null; state.pin = null;
+  // Point affiché en haut à droite : le survol l'emporte sur le clic
+  function refreshTip() {
+    const key = showVals.checked ? (state.hover || state.pin) : null;
+    document.querySelectorAll("#chart circle.dot").forEach((c) => {
+      const on = c.dataset.k === key;
+      c.setAttribute("fill", on ? "var(--ok)" : c.dataset.fill);
+      c.setAttribute("stroke", on ? "var(--ok)" : c.dataset.stroke);
+      c.setAttribute("r", on ? (key === state.pin ? 9 : 7) : 2.25);
+    });
+    const tv = document.getElementById("tipV"), td = document.getElementById("tipD"), ts = document.getElementById("tipS"), tr_ = document.getElementById("tipR");
+    if (!tv) return;
+    const pt = key && (key[0] === "P" ? P : O)[+key.slice(1)];
+    tv.textContent = pt ? `${fmtKg(pt.kg)} kg` : "";
+    td.textContent = pt ? shortFr(pt.d) : "";
+    tv.setAttribute("fill", key && key[0] === "O" ? "var(--objectif)" : "var(--poids)");
+    const sv = pt && state.simAt && P.length && pt.d >= P[P.length - 1].d && pt.d <= state.simEnd ? state.simAt(pt.d) : null;
+    ts.textContent = sv === null ? "" : `${fmtKg(sv)} kg simulé`;
+    // Placement à côté du point, décalé vers le haut-droite (ou ailleurs si le bord est atteint)
+    const dot = pt && document.querySelector(`#chart circle.dot[data-k="${key}"]`);
+    const clip = document.querySelector("#clip rect");
+    const lines = [tv, td, ts].filter((n) => n.textContent);
+    const cx0 = dot ? +dot.getAttribute("cx") : 0, cy0 = dot ? +dot.getAttribute("cy") : 0;
+    const inPlot = dot && cx0 >= +clip.getAttribute("x") && cx0 <= +clip.getAttribute("x") + +clip.getAttribute("width");
+    if (!inPlot) { [tv, td, ts].forEach((n) => (n.textContent = "")); tr_.setAttribute("visibility", "hidden"); return; }
+    const svgW = document.querySelector("#chart svg").viewBox.baseVal.width, svgT = +clip.getAttribute("y");
+    const gap = key === state.pin ? 16 : 14, LH = 16;
+    const place = (right, above) => lines.forEach((n, i) => {
+      n.setAttribute("text-anchor", right ? "start" : "end");
+      n.setAttribute("x", cx0 + (right ? gap : -gap));
+      n.setAttribute("y", above ? cy0 - gap - (lines.length - 1 - i) * LH : cy0 + gap + 10 + i * LH);
+    });
+    const box = () => {
+      const bb = lines.map((n) => n.getBBox());
+      return { x0: Math.min(...bb.map((r) => r.x)) - 6, x1: Math.max(...bb.map((r) => r.x + r.width)) + 6,
+               y0: Math.min(...bb.map((r) => r.y)) - 3, y1: Math.max(...bb.map((r) => r.y + r.height)) + 3 };
+    };
+    place(true, true);
+    let bx = box();
+    if (bx.x1 > svgW - 4) { place(false, true); bx = box(); }
+    if (bx.y0 < svgT) { place(bx.x0 > cx0, false); bx = box(); }
+    // Encadré vert uniquement pour un point cliqué
+    if (key === state.pin) {
+      tr_.setAttribute("x", bx.x0); tr_.setAttribute("y", bx.y0);
+      tr_.setAttribute("width", bx.x1 - bx.x0); tr_.setAttribute("height", bx.y1 - bx.y0);
+      tr_.setAttribute("visibility", "visible");
+    } else tr_.setAttribute("visibility", "hidden");
+  }
+  const chartEl = document.getElementById("chart");
+  const keyOf = (e) => { const h = e.target.closest && e.target.closest("circle.hit"); return h ? h.dataset.k : null; };
+  // Gestes : un doigt / la souris fait défiler le curseur, deux doigts règlent l'échelle (slider uniquement)
+  const ptrs = new Map();
+  let pan = null, pinch = null;
+  const tFromLen = (len) => {
+    const [mn, mid, mx] = scaleDays();
+    len = Math.min(mx, Math.max(mn, len));
+    const u = len <= mid ? 0.5 * Math.log(len / mn) / Math.log(mid / mn) : 0.5 + 0.5 * Math.log(len / mid) / Math.log(mx / mid);
+    return Math.round(u * 1000);
+  };
+  const pinchDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+  chartEl.addEventListener("click", (e) => { if (state.dragged) { state.dragged = false; e.stopImmediatePropagation(); } }, true);
+  chartEl.addEventListener("pointerdown", (e) => {
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) pan = { x0: e.clientX, c0: state.cursor, moved: false, id: e.pointerId };
+    else if (ptrs.size === 2) { pan = null; pinch = { d0: pinchDist(), len0: lenDays() }; }
+  });
+  chartEl.addEventListener("pointermove", (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && ptrs.size >= 2) {
+      state.dragged = true;
+      const t = tFromLen(pinch.len0 * pinch.d0 / pinchDist());
+      if (t !== state.t) { state.t = t; scale.value = t; draw(); }
+    } else if (pan && e.pointerId === pan.id) {
+      const dx = e.clientX - pan.x0;
+      if (!pan.moved && Math.abs(dx) < 6) return;
+      if (!pan.moved) { pan.moved = true; state.dragged = true; state.hover = null; try { chartEl.setPointerCapture(e.pointerId); } catch (_) {} }
+      const plotW = Math.max(100, chartEl.clientWidth - 54);
+      const n = Math.round(pan.c0 - dx / plotW * lenDays());
+      const c = Math.min(+cur.max, Math.max(0, n));
+      if (c !== state.cursor) { setCursor(c); draw(); }
+    }
+  });
+  const endPtr = (e) => {
+    ptrs.delete(e.pointerId);
+    if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 0) { pan = null; setTimeout(() => { state.dragged = false; }, 0); }
+  };
+  chartEl.addEventListener("pointerup", endPtr);
+  chartEl.addEventListener("pointercancel", endPtr);
+  chartEl.addEventListener("mouseover", (e) => { const k = keyOf(e); if (k) { state.hover = k; refreshTip(); } });
+  chartEl.addEventListener("mouseout", (e) => { if (keyOf(e)) { state.hover = null; refreshTip(); } });
+  chartEl.addEventListener("click", (e) => {
+    const k = keyOf(e);
+    if (k) { state.pin = state.pin === k ? null : k; refreshTip(); }
+  });
+  showVals.addEventListener("change", () => { state.hover = null; state.pin = null; draw(); });
+  cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
+  document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
+  document.getElementById("prevPt").addEventListener("click", () => {
+    const c = +dateAt(state.cursor), prev = stops().filter((t) => t < c).pop();
+    if (prev !== undefined) { setCursor(dayIdx(new Date(prev))); draw(); }
+  });
+  document.getElementById("nextPt").addEventListener("click", () => {
+    const c = +dateAt(state.cursor), next = stops().find((t) => t > c);
+    if (next !== undefined) { setCursor(dayIdx(new Date(next))); draw(); }
+  });
+  scale.addEventListener("input", () => { state.t = +scale.value; draw(); });
+  document.getElementById("modes").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-mode]");
+    if (b) { setMode(b.dataset.mode); draw(); }
+  });
   document.getElementById("simBtn").addEventListener("click", (e) => {
     state.sim = !state.sim;
     e.currentTarget.setAttribute("aria-pressed", state.sim);
