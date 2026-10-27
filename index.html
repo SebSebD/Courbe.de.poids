@@ -1,442 +1,1475 @@
 <!doctype html>
 <html lang="fr">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Courbe de poids</title>
-<meta name="description" content="Suivi des pesées et des objectifs de poids.">
-<meta name="theme-color" content="#1f5f8b" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#10181f" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Poids">
-<style>
-:root {
-  --bg: #f2f5f7;
-  --surface: #ffffff;
-  --ink: #17242e;
-  --muted: #5b6b78;
-  --line: #d9e0e6;
-  --poids: #1f5f8b;
-  --poids-soft: #e1edf6;
-  --objectif: #c4473a;
-  --sim: #a67c00;
-  --ok: #2e9e4f;
-  --danger: #b3261e;
-  --on-accent: #ffffff;
-  color-scheme: light;
-  box-sizing: border-box;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #10181f;
-    --surface: #18232c;
-    --ink: #e6edf2;
-    --muted: #93a3b0;
-    --line: #2a3742;
-    --poids: #6fb1e0;
-    --poids-soft: #1d3446;
-    --objectif: #ee7b6e;
-    --sim: #d9a520;
-    --ok: #5fd38a;
-    --danger: #f2877e;
-    --on-accent: #0c1620;
-    color-scheme: dark;
-  }
-}
-*, *::before, *::after { box-sizing: inherit; }
-html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  min-height: 100%;
-}
-body::before {
-  content: ""; position: fixed; inset: 0 0 auto;
-  height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
-}
-button, input, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--poids); outline-offset: 2px; }
-
-.bar {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-}
-.bar h1 { margin: 0; font-size: 1.05rem; font-weight: 650; flex: 1; letter-spacing: -0.01em; }
-.icon-btn {
-  width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line);
-  background: var(--surface); font-size: 1.5rem; line-height: 1; cursor: pointer;
-  display: grid; place-items: center;
-}
-
-main {
-  max-width: 640px; margin: 0 auto;
-  padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
-}
-h2 { font-size: 1.35rem; margin: 4px 0 16px; letter-spacing: -0.01em; }
-h3 { font-size: 1rem; margin: 28px 0 8px; }
-p { margin: 0 0 12px; }
-.muted { color: var(--muted); }
-.num { font-variant-numeric: tabular-nums; }
-
-/* Accueil */
-.hero { padding: 8px 0 24px; }
-.hero .big {
-  font-size: clamp(4rem, 22vw, 6.5rem); font-weight: 700; line-height: 0.95;
-  letter-spacing: -0.04em; color: var(--poids); font-variant-numeric: tabular-nums;
-}
-.hero .big small { font-size: 0.32em; letter-spacing: 0; margin-left: 6px; color: var(--muted); font-weight: 600; }
-.hero .when { color: var(--muted); margin-top: 6px; }
-.hero .goal { margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--objectif); }
-.menu { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.menu button {
-  text-align: left; padding: 16px; min-height: 92px; border-radius: 16px;
-  border: 1px solid var(--line); background: var(--surface); cursor: pointer;
-  display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
-}
-.menu button strong { font-size: 1.1rem; }
-.menu button span { color: var(--muted); font-size: 0.88rem; line-height: 1.3; }
-.menu button:active { transform: scale(0.985); }
-
-/* Formulaires */
-.entry { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
-.kg {
-  display: flex; align-items: baseline; gap: 6px; padding: 8px 16px;
-  border-radius: 16px; border: 2px solid var(--line); background: var(--surface);
-  flex: 1 1 160px; min-width: 0;
-}
-.kg:focus-within { border-color: var(--poids); }
-.kg input {
-  border: 0; background: transparent; outline: none; width: 100%; min-width: 0;
-  font-size: 2.6rem; font-weight: 700; letter-spacing: -0.02em; text-align: right;
-  font-variant-numeric: tabular-nums; padding: 0;
-}
-.kg span { font-size: 1.2rem; color: var(--muted); font-weight: 600; }
-.datepick {
-  position: relative; flex: 1 1 200px; border-radius: 16px; border: 2px solid var(--line);
-  background: var(--surface); padding: 10px 16px; display: flex; flex-direction: column; justify-content: center;
-}
-.datepick:focus-within { border-color: var(--poids); }
-.datepick .lbl { font-size: 0.82rem; color: var(--muted); }
-.datepick .val { font-weight: 600; font-size: 1.05rem; }
-.datepick input {
-  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
-  border: 0; -webkit-appearance: none; appearance: none;
-}
-.error { color: var(--danger); min-height: 1.45em; margin: 8px 0 0; font-size: 0.95rem; }
-
-.btn {
-  display: block; width: 100%; padding: 14px 18px; border-radius: 14px; cursor: pointer;
-  font-weight: 650; border: 1px solid var(--line); background: var(--surface); text-align: center;
-}
-.btn.primary { background: var(--poids); border-color: var(--poids); color: var(--on-accent); }
-.btn.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
-.btn + .btn { margin-top: 10px; }
-.stack { margin-top: 14px; }
-
-/* Tableaux */
-.rows { list-style: none; margin: 0 0 16px; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
-.rows li { display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 16px; border-top: 1px solid var(--line); }
-.rows li:first-child { border-top: 0; }
-.rows .d { flex: 1; min-width: 0; }
-.rows .d small { display: block; color: var(--muted); font-size: 0.85rem; }
-.rows .k { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.rows .del { width: 40px; height: 40px; border: 0; background: transparent; color: var(--muted); font-size: 1.3rem; border-radius: 10px; cursor: pointer; }
-.down { color: var(--poids); }
-.up { color: var(--objectif); }
-.empty { padding: 24px 0; }
-
-/* Graphique */
-.chart-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 8px 4px 4px; overflow-x: auto; }
-.chart-wrap svg { display: block; width: 100%; height: auto; min-width: 320px; touch-action: pan-y; user-select: none; -webkit-user-select: none; cursor: grab; }
-.chart-wrap .ax { fill: var(--muted); font-size: 12px; font-family: inherit; }
-.chart-wrap .grid { stroke: var(--line); stroke-width: 1; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.9rem; color: var(--muted); padding: 8px 12px 4px; }
-.legend i { display: inline-block; width: 18px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
-.ctrl { margin-top: 18px; }
-.ctrl label { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; }
-.ctrl label output { font-weight: 500; color: var(--muted); }
-input[type=range] { width: 100%; accent-color: var(--poids); margin: 8px 0 0; height: 32px; }
-.cursor-row { display: flex; align-items: center; gap: 6px; }
-.cursor-row input[type=range] { flex: 1; min-width: 0; }
-.cursor-row .arrow { flex: none; width: 40px; height: 40px; margin-top: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; font-size: 1.1rem; cursor: pointer; }
-.linkbtn { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; text-decoration: underline dotted; cursor: pointer; }
-.modes { display: flex; justify-content: center; gap: 6px; margin-top: 10px; flex-wrap: nowrap; }
-.modes button { flex: 0 1 auto; padding: 8px 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; font: inherit; font-size: 0.85rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
-.modes button[aria-pressed=true] { background: var(--poids); border-color: var(--poids); color: #fff; }
-.check { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-weight: 600; cursor: pointer; }
-.check input { width: 22px; height: 22px; accent-color: var(--poids); }
-.values { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; }
-.values div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
-.values small { display: block; color: var(--muted); font-size: 0.8rem; }
-.values b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
-.values .sim b { color: var(--sim); }
-.chart-wrap .tip { font-size: 13px; font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
-.chart-wrap .hit { cursor: pointer; }
-.simtxt { margin-top: 12px; padding-left: 12px; border-left: 3px solid var(--sim); }
-@media (orientation: landscape) and (max-height: 560px) {
-  main { max-width: 1000px; }
-  .graph-layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: start; }
-  .graph-layout .ctrl:first-child { margin-top: 0; }
-}
-
-/* Infos */
-textarea {
-  width: 100%; min-height: 180px; resize: vertical; padding: 14px; border-radius: 14px;
-  border: 1px solid var(--line); background: var(--surface); line-height: 1.5;
-}
-dl.stats { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; }
-dl.stats dt { color: var(--muted); }
-dl.stats dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
-.file-btn { position: relative; overflow: hidden; }
-.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-
-/* Toast + dialogue */
-#toast {
-  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
-  background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 12px;
-  max-width: calc(100% - 32px); transition: opacity .2s, transform .2s; z-index: 20; font-size: 0.95rem;
-}
-#toast.show { opacity: 1; transform: translate(-50%, 0); }
-dialog {
-  border: 1px solid var(--line); border-radius: 18px; padding: 22px; max-width: 340px; width: calc(100% - 40px);
-  background: var(--surface); color: var(--ink);
-}
-dialog::backdrop { background: rgb(0 0 0 / 0.45); }
-dialog p { margin: 0 0 18px; font-weight: 600; }
-dialog .row { display: flex; gap: 10px; }
-dialog .row .btn { margin: 0; }
-@media (prefers-reduced-motion: reduce) { #toast { transition: none; } .menu button:active { transform: none; } }
-</style>
-</head>
-<body>
-<header class="bar">
-  <h1 id="title">Courbe de poids</h1>
-  <button class="icon-btn" id="homeBtn" aria-label="Retour à l’accueil">≡</button>
-</header>
-<main id="app"></main>
-<div id="toast" role="status" aria-live="polite"></div>
-<dialog id="confirm">
-  <p id="confirmMsg"></p>
-  <div class="row">
-    <button class="btn" value="cancel" id="confirmNo">Annuler</button>
-    <button class="btn danger" value="ok" id="confirmYes">Confirmer</button>
-  </div>
-</dialog>
-
-<script>
-"use strict";
-
-/* ============================================================
-   Stockage (remplace pesees.json / objectifs.json)
-   ============================================================ */
-const KEYS = { pesees: "cdp.pesees", objectifs: "cdp.objectifs", memo: "cdp.memo" };
-
-function loadList(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw === null || raw.trim() === "") return [];
-    const data = JSON.parse(raw);
-    if (!Array.isArray(data)) throw new Error("Format invalide");
-    return data;
-  } catch (e) {
-    console.warn("Données corrompues, réinitialisation :", key, e);
-    return [];
-  }
-}
-function save(key, value) {
-  try {
-    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
-    return true;
-  } catch (e) {
-    toast("Enregistrement impossible : le stockage du navigateur est indisponible.");
-    return false;
-  }
-}
-
-let pesees = loadList(KEYS.pesees);
-let objectifs = loadList(KEYS.objectifs);
-const savePesees = () => save(KEYS.pesees, pesees);
-const saveObjectifs = () => save(KEYS.objectifs, objectifs);
-
-// Demande au navigateur de ne pas effacer les données (utile sur mobile)
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-
-/* ============================================================
-   Dates et nombres
-   ============================================================ */
-const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
-const DAY = 86400000;
-const pad = (n) => String(n).padStart(2, "0");
-const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const fromISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
-const formatFr = (d) => `${JOURS[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-const shortFr = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
-
-// Accepte "lundi 26/10/2026", "26/10/2026" ou "2026-10-26"
-function parseAnyDate(s) {
-  if (!s) return null;
-  s = String(s).trim();
-  let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  return null;
-}
-function parseKg(s) {
-  const v = parseFloat(String(s).replace(",", ".").trim());
-  return Number.isFinite(v) ? v : null;
-}
-const fmtKg = (v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
-const fmtDelta = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + fmtKg(Math.abs(v));
-
-// Liste triée de points {idx, d, kg} à partir des données brutes
-function series(list) {
-  return list
-    .map((e, idx) => ({ idx, d: parseAnyDate(e.date), kg: parseKg(e.poids) }))
-    .filter((p) => p.d && p.kg !== null)
-    .sort((a, b) => a.d - b.d);
-}
-function interpolate(pts, t) {
-  if (!pts.length) return null;
-  if (t < pts[0].d || t > pts[pts.length - 1].d) return null;
-  for (let i = 0; i < pts.length; i++) {
-    if (+pts[i].d === +t) return pts[i].kg;
-    if (pts[i].d > t) {
-      const a = pts[i - 1], b = pts[i];
-      return a.kg + (b.kg - a.kg) * (t - a.d) / (b.d - a.d);
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Courbe de poids</title>
+  <meta name="description" content="Suivi des pesées et des objectifs de poids.">
+  <meta name="theme-color" content="#1f5f8b" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#10181f" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Poids">
+  <style>
+    :root {
+      --bg: #f2f5f7;
+      --surface: #ffffff;
+      --ink: #17242e;
+      --muted: #5b6b78;
+      --line: #d9e0e6;
+      --poids: #1f5f8b;
+      --poids-soft: #e1edf6;
+      --objectif: #c4473a;
+      --sim: #ded33a;
+      --ok: #2e9e4f;
+      --danger: #b3261e;
+      --on-accent: #ffffff;
+      color-scheme: light;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-  }
-  return null;
-}
-function nextObjective() {
-  const t = today();
-  return series(objectifs).find((o) => o.d >= t) || null;
-}
 
-/* ============================================================
-   Utilitaires d'interface
-   ============================================================ */
-const app = document.getElementById("app");
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #10181f;
+        --surface: #18232c;
+        --ink: #e6edf2;
+        --muted: #93a3b0;
+        --line: #2a3742;
+        --poids: #6fb1e0;
+        --poids-soft: #1d3446;
+        --objectif: #ee7b6e;
+        --sim: #d9a520;
+        --ok: #5fd38a;
+        --danger: #f2877e;
+        --on-accent: #0c1620;
+        color-scheme: dark;
+      }
+    }
 
-let toastTimer;
-function toast(msg) {
-  const el = document.getElementById("toast");
-  el.textContent = msg;
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
-}
+    *,
+    *::before,
+    *::after {
+      box-sizing: inherit;
+    }
 
-function confirmAsk(message, okLabel = "Confirmer") {
-  const dlg = document.getElementById("confirm");
-  document.getElementById("confirmMsg").textContent = message;
-  document.getElementById("confirmYes").textContent = okLabel;
-  return new Promise((resolve) => {
-    const yes = document.getElementById("confirmYes");
-    const no = document.getElementById("confirmNo");
-    const done = (v) => { dlg.close(); yes.onclick = no.onclick = dlg.oncancel = null; resolve(v); };
-    yes.onclick = () => done(true);
-    no.onclick = () => done(false);
-    dlg.oncancel = () => done(false);
-    if (dlg.showModal) dlg.showModal(); else resolve(window.confirm(message));
-  });
-}
+    html {
+      scroll-padding-top: env(safe-area-inset-top, 0px);
+      -webkit-text-size-adjust: 100%;
+    }
 
-// Champ date natif caché derrière un libellé en français (remplace la fenêtre calendrier)
-function bindDatePicker(root, initial, onChange) {
-  const input = root.querySelector("input[type=date]");
-  const val = root.querySelector(".val");
-  input.value = toISO(initial);
-  val.textContent = formatFr(initial);
-  input.addEventListener("change", () => {
-    if (!input.value) { input.value = toISO(today()); }
-    const d = fromISO(input.value);
-    val.textContent = formatFr(d);
-    onChange && onChange(d);
-  });
-  input.addEventListener("click", () => { try { input.showPicker && input.showPicker(); } catch (e) {} });
-  return () => fromISO(input.value);
-}
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100%;
+    }
 
-/* ============================================================
-   Navigation (hash : #pesee, #objectif, #graphique…)
-   ============================================================ */
-const VIEWS = {
-  "": ["Courbe de poids", viewHome],
-  "pesee": ["Pesée", viewPesee],
-  "pesees": ["Tableau des pesées", viewTablePesees],
-  "objectif": ["Objectif", viewObjectif],
-  "objectifs": ["Tableau des objectifs", viewTableObjectifs],
-  "graphique": ["Graphique", viewGraphique],
-  "infos": ["Infos / Mémo", viewInfos],
-};
-function go(name) { location.hash = name ? "#" + name : "#"; }
-function render() {
-  const name = location.hash.replace(/^#/, "");
-  const [title, fn] = VIEWS[name] || VIEWS[""];
-  document.getElementById("title").textContent = title;
-  document.title = name ? `${title} – Courbe de poids` : "Courbe de poids";
-  app.innerHTML = "";
-  fn();
-  window.scrollTo(0, 0);
-}
-window.addEventListener("hashchange", render);
-document.getElementById("homeBtn").addEventListener("click", () => go(""));
-app.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-go]");
-  if (b) go(b.dataset.go);
-});
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0 0 auto;
+      height: env(safe-area-inset-top, 0px);
+      z-index: 10;
+      background: var(--bg);
+    }
 
-/* ============================================================
-   ACCUEIL
-   ============================================================ */
-function viewHome() {
-  const P = series(pesees);
-  const last = P[P.length - 1];
-  const next = nextObjective();
-  let hero = `<p class="muted">Aucune pesée pour l’instant. Commencez par entrer votre poids du jour.</p>`;
-  if (last) {
-    hero = `<div class="big">${fmtKg(last.kg)}<small>kg</small></div>
+    button,
+    input,
+    textarea {
+      font: inherit;
+      color: inherit;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--poids);
+      outline-offset: 2px;
+    }
+
+    .bar {
+      position: sticky;
+      top: env(safe-area-inset-top, 0px);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+      background: var(--bg);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .bar h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 650;
+      flex: 1;
+      letter-spacing: -0.01em;
+    }
+
+    .icon-btn[hidden] {
+      display: none;
+    }
+
+    .shortcuts {
+      display: flex;
+      gap: 6px;
+    }
+
+    .icon-btn.sm {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+    }
+
+    .icon-btn.sm svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .icon-btn.sm[aria-current] {
+      border-color: var(--poids);
+      background: var(--poids-soft);
+    }
+
+    .bar h1 {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      font-size: 1.5rem;
+      line-height: 1;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+    }
+
+    main {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 20px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+    }
+
+    h2 {
+      font-size: 1.35rem;
+      margin: 4px 0 16px;
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-size: 1rem;
+      margin: 28px 0 8px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Accueil */
+    .hero {
+      padding: 8px 0 24px;
+    }
+
+    .hero .big {
+      font-size: clamp(4rem, 22vw, 6.5rem);
+      font-weight: 700;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      color: var(--poids);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hero .big small {
+      font-size: 0.32em;
+      letter-spacing: 0;
+      margin-left: 6px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .hero .when {
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .hero .goal {
+      margin-top: 14px;
+      padding-left: 12px;
+      border-left: 3px solid var(--objectif);
+    }
+
+    .menu {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .menu button {
+      text-align: left;
+      padding: 16px;
+      min-height: 92px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .menu button strong {
+      font-size: 1.1rem;
+    }
+
+    .menu button span {
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    .menu {
+      grid-template-rows: 1fr 1fr auto;
+    }
+
+    .menu button {
+      min-height: 0;
+      padding: 12px 14px;
+    }
+
+    .menu button span {
+      font-size: 0.78rem;
+    }
+
+    .menu>button:not(.big-graph) {
+      grid-column: 2;
+    }
+
+    .menu .big-graph {
+      grid-column: 1;
+      grid-row: 1 / span 3;
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      aspect-ratio: 1;
+      align-self: start;
+    }
+
+    .menu .big-graph strong {
+      font-size: 1.15rem;
+    }
+
+    .menu .big-graph .gicon {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 62%;
+      height: 62%;
+      transform: translate(-50%, -50%);
+    }
+
+    .menu .big-graph>span {
+      font-size: 0.75rem;
+    }
+
+    .menu .small-info {
+      margin-top: 10px;
+      padding: 8px 12px;
+      gap: 2px;
+    }
+
+    .menu .small-info strong {
+      font-size: 0.9rem;
+    }
+
+    .menu .small-info span {
+      font-size: 0.72rem;
+    }
+
+    .menu button {
+      position: relative;
+    }
+
+    .menu .mi {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+    }
+
+    .menu .small-info .mi {
+      top: 8px;
+      right: 10px;
+      width: 22px;
+      height: 22px;
+    }
+
+    .menu .big-graph {
+      border: 3px solid var(--ink);
+    }
+
+    .menu .small-info {
+      border: 2px solid var(--muted);
+    }
+
+    .menu .m-pesee {
+      border: 3px solid var(--poids);
+    }
+
+    .menu .m-obj {
+      border: 3px solid var(--objectif);
+    }
+
+    .menu button:active {
+      transform: scale(0.985);
+    }
+
+    /* Formulaires */
+    .entry {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+      flex-wrap: wrap;
+    }
+
+    .kg {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 16px;
+      border: 2px solid var(--line);
+      background: var(--surface);
+      flex: 1 1 160px;
+      min-width: 0;
+    }
+
+    .kg:focus-within {
+      border-color: var(--poids);
+    }
+
+    .kg input {
+      border: 0;
+      background: transparent;
+      outline: none;
+      width: 100%;
+      min-width: 0;
+      font-size: 2.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      padding: 0;
+    }
+
+    .kg span {
+      font-size: 1.2rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .datepick {
+      position: relative;
+      flex: 1 1 200px;
+      border-radius: 16px;
+      border: 2px solid var(--line);
+      background: var(--surface);
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .datepick:focus-within {
+      border-color: var(--poids);
+    }
+
+    .datepick .lbl {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .datepick .val {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+
+    .datepick input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+      border: 0;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .datepick input.manual {
+      position: static;
+      opacity: 1;
+      height: auto;
+      cursor: text;
+      background: transparent;
+      outline: none;
+      padding: 0;
+      font-weight: 600;
+      font-size: 1.05rem;
+      font-variant-numeric: tabular-nums;
+      width: 100%;
+    }
+
+    .datepick input.manual.bad {
+      color: var(--danger);
+    }
+
+    .wheel-pop.wide {
+      width: min(320px, 92vw);
+    }
+
+    .wheel-cols {
+      display: flex;
+      gap: 4px;
+    }
+
+    .wheel-cols .wheel {
+      flex: 1;
+    }
+
+    .wheel-cols .wheel:last-child {
+      flex: 1.3;
+    }
+
+    .error {
+      color: var(--danger);
+      min-height: 1.45em;
+      margin: 8px 0 0;
+      font-size: 0.95rem;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 650;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      text-align: center;
+    }
+
+    .btn.primary {
+      background: var(--poids);
+      border-color: var(--poids);
+      color: var(--on-accent);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+      border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+    }
+
+    .btn+.btn {
+      margin-top: 10px;
+    }
+
+    .stack {
+      margin-top: 14px;
+    }
+
+    /* Tableaux */
+    .rows {
+      list-style: none;
+      margin: 0 0 16px;
+      padding: 0;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .rows li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 8px 12px 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .rows li:first-child {
+      border-top: 0;
+    }
+
+    .rows .d {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rows .d small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .rows .k {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .rows .del {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 1.3rem;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .down {
+      color: var(--poids);
+    }
+
+    .up {
+      color: var(--objectif);
+    }
+
+    .empty {
+      padding: 24px 0;
+    }
+
+    /* Graphique */
+    .chart-wrap {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 8px 4px 4px;
+      overflow-x: auto;
+    }
+
+    .chart-wrap svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      min-width: 320px;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grab;
+    }
+
+    .chart-wrap .ax {
+      fill: var(--muted);
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    .chart-wrap .grid {
+      stroke: var(--line);
+      stroke-width: 1;
+    }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+      color: var(--muted);
+      padding: 8px 12px 4px;
+    }
+
+    .legend i {
+      display: inline-block;
+      width: 18px;
+      height: 0;
+      border-top: 3px solid;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    .ctrl {
+      margin-top: 18px;
+    }
+
+    .ctrl label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-weight: 600;
+    }
+
+    .ctrl label output {
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--poids);
+      margin: 8px 0 0;
+      height: 32px;
+    }
+
+    .cursor-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cursor-row input[type=range] {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .cursor-row .arrow {
+      flex: none;
+      width: 40px;
+      height: 40px;
+      margin-top: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 10px;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+
+    .linkbtn {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      font-weight: 600;
+      color: inherit;
+      text-decoration: underline dotted;
+      cursor: pointer;
+    }
+
+    .modes {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: nowrap;
+    }
+
+    .modes button {
+      flex: 0 1 auto;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 10px;
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .modes button[aria-pressed=true] {
+      background: var(--poids);
+      border-color: var(--poids);
+      color: #fff;
+    }
+
+    .chart-box {
+      position: relative;
+      margin-top: 12px;
+    }
+
+    .checks {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 4px 8px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--surface) 80%, transparent);
+    }
+
+    .check:has(#simChk) {
+      color: var(--sim);
+    }
+
+    .check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .check input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--poids);
+    }
+
+    .values {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .values div {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .values #cP,
+    .values #cO {
+      cursor: pointer;
+    }
+
+    .values small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .values b {
+      color: var(--poids);
+      font-size: 1.25rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .values .sim b {
+      color: var(--sim);
+    }
+
+    .values .obj b {
+      color: var(--objectif);
+    }
+
+    .chart-wrap .tip {
+      font-size: 13px;
+      font-weight: 600;
+      paint-order: stroke;
+      stroke: var(--surface);
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .chart-wrap .hit {
+      cursor: pointer;
+    }
+
+    .simtxt {
+      margin-top: 12px;
+      padding-left: 12px;
+      border-left: 3px solid var(--sim);
+    }
+
+    @media (orientation: landscape) and (max-height: 560px) {
+      main {
+        max-width: 1000px;
+      }
+    }
+
+    /* Infos */
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      resize: vertical;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      line-height: 1.5;
+    }
+
+    dl.stats {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 6px 16px;
+      margin: 0;
+    }
+
+    dl.stats dt {
+      color: var(--muted);
+    }
+
+    dl.stats dd {
+      margin: 0;
+      font-weight: 600;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .file-btn {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .file-btn input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Toast + dialogue */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      transform: translate(-50%, 20px);
+      opacity: 0;
+      pointer-events: none;
+      background: var(--ink);
+      color: var(--bg);
+      padding: 12px 18px;
+      border-radius: 12px;
+      max-width: calc(100% - 32px);
+      transition: opacity .2s, transform .2s;
+      z-index: 20;
+      font-size: 0.95rem;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    dialog {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      max-width: 340px;
+      width: calc(100% - 40px);
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    dialog::backdrop {
+      background: rgb(0 0 0 / 0.45);
+    }
+
+    dialog p {
+      margin: 0 0 18px;
+      font-weight: 600;
+    }
+
+    dialog .row {
+      display: flex;
+      gap: 10px;
+    }
+
+    dialog .row .btn {
+      margin: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #toast {
+        transition: none;
+      }
+
+      .menu button:active {
+        transform: none;
+      }
+    }
+
+    /* Roulette de poids (appui long sur le champ) */
+    .wheel-back {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, .35);
+    }
+
+    .wheel-pop {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px 16px 16px;
+      width: min(260px, 86vw);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
+    }
+
+    .wheel-box {
+      position: relative;
+      height: 180px;
+      margin-bottom: 12px;
+    }
+
+    .wheel {
+      height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;
+      scrollbar-width: none;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+      mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+      -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent);
+    }
+
+    .wheel::-webkit-scrollbar {
+      display: none;
+    }
+
+    .wheel .pad {
+      height: 72px;
+    }
+
+    .wheel .it {
+      height: 36px;
+      line-height: 36px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      scroll-snap-align: center;
+    }
+
+    .wheel .it.int {
+      color: var(--ink);
+      font-weight: 700;
+      scroll-snap-stop: always;
+    }
+
+    .wheel-box::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 72px;
+      height: 36px;
+      border-top: 2px solid var(--poids);
+      border-bottom: 2px solid var(--poids);
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="bar">
+    <h1 id="title">Courbe de poids</h1>
+    <div class="shortcuts" id="shortcuts">
+      <button class="icon-btn sm" data-to="graphique" aria-label="Graphique"><svg viewBox="0 0 24 24" fill="none"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 4v16h18" stroke="var(--muted)" stroke-width="1.4" />
+          <path d="M5 9l4 3 4-5 6 3" stroke="var(--poids)" />
+          <path d="M5 17l5-3 4 2 5-3" stroke="var(--objectif)" stroke-dasharray="3 2.5" />
+        </svg></button>
+      <button class="icon-btn sm" data-to="pesee" aria-label="Pesée"><svg viewBox="0 0 24 24" fill="none"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--poids)">
+          <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" />
+          <path d="M8 10a4 4 0 0 1 8 0z" />
+          <path d="M12 10l1.6-2.6" />
+        </svg></button>
+      <button class="icon-btn sm" data-to="objectif" aria-label="Objectif"><svg viewBox="0 0 24 24" fill="none"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--objectif)">
+          <circle cx="14" cy="4.5" r="2" fill="var(--objectif)" stroke="none" />
+          <path d="M13 7.5L11.5 13" />
+          <path d="M13 8.5l3.5 1 1-3" />
+          <path d="M12.8 8.5L9.5 9l-1 3" />
+          <path d="M11.5 13l3 4-2 4" />
+          <path d="M11.5 13L8 16l-3.5-1.5" />
+          <path d="M2 6h3M1 9h2.5" stroke-width="1.1" opacity=".6" />
+        </svg></button>
+      <button class="icon-btn sm" data-to="infos" aria-label="Infos / Mémo"><svg viewBox="0 0 24 24" fill="none"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--muted)">
+          <path d="M12 6C10 4.8 6.5 4.5 3 5.2v13c3.5-.7 7-.4 9 .8 2-1.2 5.5-1.5 9-.8v-13C17.5 4.5 14 4.8 12 6z" />
+          <path d="M12 6v13" />
+        </svg></button>
+    </div>
+    <button class="icon-btn" id="homeBtn" aria-label="Retour à l’accueil">≡</button>
+  </header>
+  <main id="app"></main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="confirm">
+    <p id="confirmMsg"></p>
+    <div class="row">
+      <button class="btn" value="cancel" id="confirmNo">Annuler</button>
+      <button class="btn danger" value="ok" id="confirmYes">Confirmer</button>
+    </div>
+  </dialog>
+
+  <script>
+    "use strict";
+
+    /* ============================================================
+       Stockage (remplace pesees.json / objectifs.json)
+       ============================================================ */
+    const KEYS = { pesees: "cdp.pesees", objectifs: "cdp.objectifs", memo: "cdp.memo" };
+
+    function loadList(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw === null || raw.trim() === "") return [];
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) throw new Error("Format invalide");
+        return data;
+      } catch (e) {
+        console.warn("Données corrompues, réinitialisation :", key, e);
+        return [];
+      }
+    }
+    function save(key, value) {
+      try {
+        localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+        return true;
+      } catch (e) {
+        toast("Enregistrement impossible : le stockage du navigateur est indisponible.");
+        return false;
+      }
+    }
+
+    let pesees = loadList(KEYS.pesees);
+    let objectifs = loadList(KEYS.objectifs);
+    const savePesees = () => save(KEYS.pesees, pesees);
+    const saveObjectifs = () => save(KEYS.objectifs, objectifs);
+
+    // Demande au navigateur de ne pas effacer les données (utile sur mobile)
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => { });
+
+    /* ============================================================
+       Dates et nombres
+       ============================================================ */
+    const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+    const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+    const DAY = 86400000;
+    const pad = (n) => String(n).padStart(2, "0");
+    const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const fromISO = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+    const formatFr = (d) => `${JOURS[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    const shortFr = (d) => `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+    const today = () => { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); };
+
+    // Accepte "lundi 26/10/2026", "26/10/2026" ou "2026-10-26"
+    function parseAnyDate(s) {
+      if (!s) return null;
+      s = String(s).trim();
+      let m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+      m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+      return null;
+    }
+    function parseKg(s) {
+      const v = parseFloat(String(s).replace(",", ".").trim());
+      return Number.isFinite(v) ? v : null;
+    }
+    const fmtKg = (v) => v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+    const fmtDelta = (v) => (v > 0 ? "+" : v < 0 ? "−" : "") + fmtKg(Math.abs(v));
+
+    // Liste triée de points {idx, d, kg} à partir des données brutes
+    function series(list) {
+      return list
+        .map((e, idx) => ({ idx, d: parseAnyDate(e.date), kg: parseKg(e.poids) }))
+        .filter((p) => p.d && p.kg !== null)
+        .sort((a, b) => a.d - b.d);
+    }
+    function interpolate(pts, t) {
+      if (!pts.length) return null;
+      if (t < pts[0].d || t > pts[pts.length - 1].d) return null;
+      for (let i = 0; i < pts.length; i++) {
+        if (+pts[i].d === +t) return pts[i].kg;
+        if (pts[i].d > t) {
+          const a = pts[i - 1], b = pts[i];
+          return a.kg + (b.kg - a.kg) * (t - a.d) / (b.d - a.d);
+        }
+      }
+      return null;
+    }
+    function nextObjective() {
+      const t = today();
+      return series(objectifs).find((o) => o.d >= t) || null;
+    }
+
+    /* ============================================================
+       Utilitaires d'interface
+       ============================================================ */
+    const app = document.getElementById("app");
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    let toastTimer;
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+    }
+
+    function confirmAsk(message, okLabel = "Confirmer") {
+      const dlg = document.getElementById("confirm");
+      document.getElementById("confirmMsg").textContent = message;
+      document.getElementById("confirmYes").textContent = okLabel;
+      return new Promise((resolve) => {
+        const yes = document.getElementById("confirmYes");
+        const no = document.getElementById("confirmNo");
+        const done = (v) => { dlg.close(); yes.onclick = no.onclick = dlg.oncancel = null; resolve(v); };
+        yes.onclick = () => done(true);
+        no.onclick = () => done(false);
+        dlg.oncancel = () => done(false);
+        if (dlg.showModal) dlg.showModal(); else resolve(window.confirm(message));
+      });
+    }
+
+
+    // Roulette : un appui d'une seconde sur le champ de poids l'ouvre ; la saisie manuelle reste possible
+    let wheelBusyUntil = 0;
+    function attachWheel(input, getStart, getLast) {
+      const H = 36, MIN = 20, MAX = 400, fmt1 = (v) => v.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+      let timer = null, x0 = 0, y0 = 0, armed = false, held = false;
+      const cancel = () => { clearTimeout(timer); timer = null; };
+      input.addEventListener("pointerdown", (e) => {
+        x0 = e.clientX; y0 = e.clientY;
+        held = false;
+        cancel(); timer = setTimeout(() => { timer = null; held = true; open(); }, 1000);
+      });
+      // 1er clic : saisie manuelle ; 2e clic dans le champ : roulette
+      input.addEventListener("click", () => {
+        if (held || Date.now() < wheelBusyUntil) return;
+        if (armed) { open(); return; }
+        armed = true;
+        input.select(); input.setSelectionRange(0, input.value.length);
+      });
+      input.addEventListener("blur", () => { armed = false; });
+      input.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel(); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((t) => input.addEventListener(t, cancel));
+      input.addEventListener("contextmenu", (e) => { if (timer || Date.now() < wheelBusyUntil) e.preventDefault(); });
+
+      function open() {
+        wheelBusyUntil = Date.now() + 600;
+        armed = false; input.blur();
+        const typed = parseKg(input.value);
+        const start = Math.min(MAX, Math.max(MIN, typed !== null ? typed : getStart()));
+        const lo = Math.max(MIN, Math.floor(start) - 40), hi = Math.min(MAX, Math.ceil(start) + 40);
+        const n = Math.round((hi - lo) * 10) + 1;
+        const back = document.createElement("div");
+        back.className = "wheel-back";
+        let items = "";
+        for (let i = 0; i < n; i++) {
+          const t = lo * 10 + i;
+          items += `<div class="it${t % 10 === 0 ? " int" : ""}" data-i="${i}">${fmt1(t / 10)}</div>`;
+        }
+        back.innerHTML = `<div class="wheel-pop" role="dialog" aria-label="Choisir le poids">
+      <div class="wheel-box"><div class="wheel"><div class="pad"></div>${items}<div class="pad"></div></div></div>
+      <button type="button" class="btn primary">OK</button></div>`;
+        document.body.appendChild(back);
+        const wheel = back.querySelector(".wheel");
+        const valueAt = () => lo + Math.min(n - 1, Math.max(0, Math.round(wheel.scrollTop / H))) / 10;
+        wheel.scrollTop = Math.round((start - lo) * 10) * H;
+        wheel.addEventListener("scroll", () => {
+          input.value = fmt1(valueAt());
+          input.dispatchEvent(new Event("input"));
+        });
+        wheel.addEventListener("click", (e) => {
+          const it = e.target.closest(".it");
+          if (it) wheel.scrollTo({ top: +it.dataset.i * H, behavior: "smooth" });
+        });
+        // OK valide la valeur de la roulette ; sinon on retrouve la dernière valeur enregistrée
+        const close = (ok) => {
+          if (ok) input.value = fmt1(valueAt());
+          else { const l = getLast && getLast(); input.value = l == null ? "" : fmt1(l); }
+          input.dispatchEvent(new Event("input"));
+          back.remove(); wheelBusyUntil = Date.now() + 600;
+        };
+        back.querySelector("button").addEventListener("click", () => close(true));
+        back.addEventListener("click", (e) => { if (e.target === back && Date.now() > wheelBusyUntil) close(false); });
+      }
+    }
+
+    // Date : calendrier natif au 1er clic, saisie manuelle au 2e clic, roulette JJ/MM/AAAA après 1 seconde d'appui
+    const MOIS_LONGS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+    const fmtLong = (d) => `${JOURS[d.getDay()]} ${d.getDate() === 1 ? "1er" : d.getDate()} ${MOIS_LONGS[d.getMonth()]} ${d.getFullYear()}`;
+    const daysIn = (y, m) => new Date(y, m + 1, 0).getDate();
+
+    function bindDatePicker(root, initial, onChange) {
+      const input = root.querySelector("input[type=date]");
+      const val = root.querySelector(".val");
+      const H = 36;
+      let cur = initial, manualAt = 0, armed = false, timer = null, x0 = 0, y0 = 0, wheelShown = false, manualShown = false;
+
+      const setDate = (d) => {
+        cur = d; input.value = toISO(d); val.textContent = fmtLong(d);
+        onChange && onChange(d);
+      };
+      input.value = toISO(initial);
+      val.textContent = fmtLong(initial);
+      input.addEventListener("change", () => {
+        if (!input.value) { input.value = toISO(today()); }
+        setDate(fromISO(input.value));
+      });
+
+      // Saisie manuelle
+      const man = document.createElement("input");
+      man.className = "manual"; man.hidden = true; man.inputMode = "numeric"; man.autocomplete = "off";
+      man.placeholder = "JJ/MM/AAAA"; man.maxLength = 10; man.setAttribute("aria-label", "Date au format jour, mois, année");
+      root.appendChild(man);
+      function enterManual() {
+        manualShown = true; armed = false; manualAt = Date.now();
+        input.style.pointerEvents = "none"; input.blur();
+        val.hidden = true; man.hidden = false; man.value = ""; man.classList.remove("bad");
+        man.focus();
+      }
+      function leaveManual() {
+        if (!manualShown) return;
+        manualShown = false;
+        man.hidden = true; val.hidden = false; input.style.pointerEvents = "";
+      }
+      man.addEventListener("input", () => {
+        const dg = man.value.replace(/\D/g, "").slice(0, 8);
+        man.value = dg.slice(0, 2) + (dg.length > 2 ? "/" + dg.slice(2, 4) : "") + (dg.length > 4 ? "/" + dg.slice(4) : "");
+        man.classList.remove("bad");
+        if (dg.length < 8) return;
+        const d = +dg.slice(0, 2), m = +dg.slice(2, 4), y = +dg.slice(4);
+        const dt = new Date(y, m - 1, d);
+        if (y >= 1900 && dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d) { setDate(dt); leaveManual(); }
+        else man.classList.add("bad");
+      });
+      man.addEventListener("blur", leaveManual);
+      // Un clic dans la zone JJ/MM/AAAA ouvre la roulette (le champ a déjà le focus, on peut taper sans cliquer)
+      man.addEventListener("click", () => { if (Date.now() > manualAt + 400) openWheel(); });
+      man.addEventListener("keydown", (e) => { if (e.key === "Escape" || e.key === "Enter") leaveManual(); });
+      document.addEventListener("pointerdown", (e) => { if (!root.contains(e.target)) armed = false; });
+
+      // Appui sur la zone : calendrier / saisie manuelle / roulette
+      const cancel = () => { clearTimeout(timer); timer = null; };
+      input.addEventListener("pointerdown", (e) => {
+        x0 = e.clientX; y0 = e.clientY; wheelShown = false;
+        cancel(); timer = setTimeout(() => { timer = null; wheelShown = true; openWheel(); }, 1000);
+        if (armed) e.preventDefault();
+      });
+      input.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel(); });
+      input.addEventListener("pointercancel", cancel);
+      input.addEventListener("pointerleave", cancel);
+      input.addEventListener("pointerup", () => {
+        const quick = !!timer;
+        cancel();
+        if (quick && armed && !wheelShown) enterManual();
+      });
+      input.addEventListener("click", (e) => {
+        if (wheelShown || manualShown || Date.now() < wheelBusyUntil) { e.preventDefault(); return; }
+        armed = true;
+        try { input.showPicker && input.showPicker(); } catch (_) { }
+      });
+      input.addEventListener("contextmenu", (e) => { if (timer || wheelShown) e.preventDefault(); });
+      // 3e clic : pendant la saisie manuelle, un clic sur la zone (hors du champ de saisie) ouvre la roulette
+      let downManual = false;
+      root.addEventListener("pointerdown", (e) => { downManual = manualShown && e.target !== man; }, true);
+      root.addEventListener("click", () => { if (downManual) { downManual = false; openWheel(); } });
+
+      function openWheel() {
+        wheelBusyUntil = Date.now() + 600;
+        wheelShown = true; armed = false; input.blur(); man.blur(); leaveManual();
+        // Années 2000 à 2999 : après 2999 on revient à 2000 (et inversement)
+        const Y0 = 2000, NY = 1000, DN = 2191, MN = 721;
+        const real = (d) => {
+          const y = Y0 + (((d.getFullYear() - Y0) % NY) + NY) % NY, m = d.getMonth();
+          return new Date(y, m, Math.min(d.getDate(), daysIn(y, m)));
+        };
+        let v = real(cur), dBase, mBase;
+        const dIdx = (d) => Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - dBase) / DAY);
+        const mIdx = (d) => d.getFullYear() * 12 + d.getMonth() - mBase;
+        const col = (items) => `<div class="wheel"><div class="pad"></div>${items}<div class="pad"></div></div>`;
+        let yI = "";
+        for (let i = 0; i < NY; i++) yI += `<div class="it int">${Y0 + i}</div>`;
+        const back = document.createElement("div");
+        back.className = "wheel-back";
+        back.innerHTML = `<div class="wheel-pop wide" role="dialog" aria-label="Choisir la date">
+      <div class="wheel-box wheel-cols">${col("")}${col("")}${col(yI)}</div>
+      <button type="button" class="btn primary">OK</button></div>`;
+        document.body.appendChild(back);
+        const [wd, wm, wy] = back.querySelectorAll(".wheel");
+        const ignore = new Map();
+        const rest = new Map();
+        const setCol = (el, i) => { const t = i * H; rest.set(el, t); if (el.scrollTop !== t) { ignore.set(el, t); el.scrollTop = t; } };
+        const idxOf = (el, n) => Math.min(n - 1, Math.max(0, Math.round(el.scrollTop / H)));
+        // Les colonnes jours et mois sont des fenêtres recentrées autour de la date (liste glissante)
+        const buildDays = () => {
+          dBase = new Date(v.getFullYear(), v.getMonth(), v.getDate() - 1095);
+          let h = "";
+          for (let i = 0; i < DN; i++) { const d = new Date(dBase.getFullYear(), dBase.getMonth(), dBase.getDate() + i); h += `<div class="it${d.getDate() === 1 ? " int" : ""}">${pad(d.getDate())}</div>`; }
+          wd.innerHTML = `<div class="pad"></div>${h}<div class="pad"></div>`;
+          setCol(wd, dIdx(v));
+        };
+        const buildMonths = () => {
+          mBase = v.getFullYear() * 12 + v.getMonth() - 360;
+          let h = "";
+          for (let i = 0; i < MN; i++) h += `<div class="it${(mBase + i) % 12 === 0 ? " int" : ""}">${pad((mBase + i) % 12 + 1)}</div>`;
+          wm.innerHTML = `<div class="pad"></div>${h}<div class="pad"></div>`;
+          setCol(wm, mIdx(v));
+        };
+        const apply = (nv, from) => {
+          v = nv; cur = real(v);
+          if (from !== wd) { const i = dIdx(v); if (i < 0 || i >= DN) buildDays(); else setCol(wd, i); }
+          if (from !== wm) { const i = mIdx(v); if (i < 0 || i >= MN) buildMonths(); else setCol(wm, i); }
+          if (from !== wy) setCol(wy, cur.getFullYear() - Y0);
+          input.value = toISO(cur); val.textContent = fmtLong(cur);
+          onChange && onChange(cur);
+        };
+        let idle = null;
+        // Un petit défilement (≥ 40 % d'un cran) saute à la valeur suivante / précédente dans le sens du geste
+        const ext = new Map(), jumps = new Map(), settle = new Map();
+        const watch = (el, fn) => el.addEventListener("scroll", () => {
+          const t = ignore.get(el);
+          if (t !== undefined && Math.abs(el.scrollTop - t) < 1) { ignore.delete(el); return; }
+          ignore.delete(el);
+          fn();
+          const d = el.scrollTop - (rest.get(el) ?? 0);
+          if (Math.abs(d) > Math.abs(ext.get(el) ?? 0)) ext.set(el, d);
+          clearTimeout(settle.get(el));
+          settle.set(el, setTimeout(() => {
+            const r = rest.get(el) ?? 0, e = ext.get(el) ?? 0;
+            if (!jumps.get(el) && Math.round(el.scrollTop / H) === Math.round(r / H) && Math.abs(e) >= 0.4 * H) {
+              jumps.set(el, true);
+              el.scrollTo({ top: r + Math.sign(e) * H, behavior: "smooth" });
+            } else { rest.set(el, el.scrollTop); ext.set(el, 0); jumps.set(el, false); }
+          }, 130));
+          clearTimeout(idle);
+          idle = setTimeout(() => {
+            if (dIdx(v) < 365 || dIdx(v) > DN - 365) buildDays();
+            if (mIdx(v) < 24 || mIdx(v) > MN - 24) buildMonths();
+          }, 200);
+        });
+        watch(wd, () => apply(new Date(dBase.getFullYear(), dBase.getMonth(), dBase.getDate() + idxOf(wd, DN)), wd));
+        watch(wm, () => {
+          const a = mBase + idxOf(wm, MN), y = Math.floor(a / 12), m = a % 12;
+          apply(new Date(y, m, Math.min(v.getDate(), daysIn(y, m))), wm);
+        });
+        watch(wy, () => {
+          const y = Y0 + idxOf(wy, NY), m = v.getMonth();
+          apply(new Date(y, m, Math.min(v.getDate(), daysIn(y, m))), wy);
+        });
+        [wd, wm, wy].forEach((el) => el.addEventListener("click", (e) => {
+          const it = e.target.closest(".it");
+          if (it) el.scrollTo({ top: [...el.querySelectorAll(".it")].indexOf(it) * H, behavior: "smooth" });
+        }));
+        buildDays(); buildMonths(); setCol(wy, v.getFullYear() - Y0);
+        const close = (ok) => {
+          clearTimeout(idle); back.remove(); wheelBusyUntil = Date.now() + 600; wheelShown = false;
+          if (!ok) setDate(today());
+        };
+        back.querySelector("button").addEventListener("click", () => close(true));
+        back.addEventListener("click", (e) => { if (e.target === back && Date.now() > wheelBusyUntil) close(false); });
+      }
+      return () => fromISO(input.value);
+    }
+
+    /* ============================================================
+       Navigation (hash : #pesee, #objectif, #graphique…)
+       ============================================================ */
+    const VIEWS = {
+      "": ["Courbe de poids", viewHome],
+      "pesee": ["Pesée", viewPesee],
+      "pesees": ["Tableau des pesées", viewTablePesees],
+      "objectif": ["Objectif", viewObjectif],
+      "objectifs": ["Tableau des objectifs", viewTableObjectifs],
+      "graphique": ["Graphique", viewGraphique],
+      "infos": ["Infos / Mémo", viewInfos],
+    };
+    function go(name) { location.hash = name ? "#" + name : "#"; }
+    // Rang de la page dans l'historique de l'application (0 = page d'arrivée)
+    let navRank;
+    function render() {
+      const name = location.hash.replace(/^#/, "");
+      if (!history.state || history.state.n === undefined) history.replaceState({ n: navRank === undefined ? 0 : navRank + 1 }, "");
+      navRank = history.state.n;
+      const [title, fn] = VIEWS[name] || VIEWS[""];
+      document.getElementById("title").textContent = title;
+      document.getElementById("homeBtn").hidden = name === "";
+      document.querySelectorAll("#shortcuts button").forEach((b) => b.toggleAttribute("aria-current", b.dataset.to === name));
+      document.title = name ? `${title} – Courbe de poids` : "Courbe de poids";
+      app.innerHTML = "";
+      fn();
+      window.scrollTo(0, 0);
+    }
+    window.addEventListener("hashchange", render);
+    document.getElementById("homeBtn").addEventListener("click", () => go(""));
+    document.getElementById("shortcuts").addEventListener("click", (e) => {
+      const b = e.target.closest("[data-to]");
+      if (b) go(b.dataset.to);
+    });
+    app.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-go]");
+      if (b) go(b.dataset.go);
+    });
+    // Sur les pages de saisie et les tableaux, un clic hors zone de saisie ou zone cliquable revient à la page précédente
+    const BACK_VIEWS = ["pesee", "pesees", "objectif", "objectifs", "infos"];
+    document.addEventListener("click", (e) => {
+      if (!BACK_VIEWS.includes(location.hash.replace(/^#/, ""))) return;
+      if (e.target.closest("button, a, input, textarea, select, label, dialog, header, .bar, .entry, .datepick, #toast")) return;
+      if (String(window.getSelection()) || Date.now() < wheelBusyUntil || document.querySelector(".wheel-back")) return;
+      if (navRank > 0) history.back(); else go("");
+    });
+
+    /* ============================================================
+       ACCUEIL
+       ============================================================ */
+    function viewHome() {
+      const P = series(pesees);
+      const last = P[P.length - 1];
+      const next = nextObjective();
+      let hero = `<p class="muted">Aucune pesée pour l’instant. Commencez par entrer votre poids du jour.</p>`;
+      if (last) {
+        hero = `<div class="big">${fmtKg(last.kg)}<small>kg</small></div>
       <div class="when">Dernière pesée : ${formatFr(last.d)}</div>`;
-    if (next) {
-      const reste = last.kg - next.kg;
-      const jours = Math.round((next.d - today()) / DAY);
-      hero += `<div class="goal">Objectif ${fmtKg(next.kg)} kg le ${shortFr(next.d)} :
+        if (next) {
+          const reste = last.kg - next.kg;
+          const jours = Math.round((next.d - today()) / DAY);
+          hero += `<div class="goal">Objectif ${fmtKg(next.kg)} kg le ${shortFr(next.d)} :
         ${reste > 0 ? `encore ${fmtKg(reste)} kg à perdre` : "objectif déjà atteint"},
         ${jours === 0 ? "c’est aujourd’hui" : `dans ${jours} jour${jours > 1 ? "s" : ""}`}.</div>`;
-    }
-  }
-  app.innerHTML = `
+        }
+      }
+      app.innerHTML = `
     <section class="hero">${hero}</section>
     <nav class="menu" aria-label="Menu principal">
-      <button data-go="pesee"><strong>Pesée</strong><span>Enregistrer un poids</span></button>
-      <button data-go="objectif"><strong>Objectif</strong><span>Fixer un poids à atteindre</span></button>
-      <button data-go="graphique"><strong>Graphique</strong><span>Poids et objectifs dans le temps</span></button>
-      <button data-go="infos"><strong>Infos / Mémo</strong><span>Notes, bilan, sauvegarde</span></button>
+      <button data-go="graphique" class="big-graph"><strong>Graphique</strong><svg class="gicon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4v16h18" stroke="var(--muted)" stroke-width="1.4"/><path d="M5 9l4 3 4-5 6 3" stroke="var(--poids)"/><path d="M5 17l5-3 4 2 5-3" stroke="var(--objectif)" stroke-dasharray="3 2.5"/></svg><span>Poids et objectifs dans le temps</span></button>
+      <button data-go="pesee" class="m-pesee"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--poids)"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M8 10a4 4 0 0 1 8 0z"/><path d="M12 10l1.6-2.6"/></svg><strong>Pesée</strong><span>Enregistrer un poids</span></button>
+      <button data-go="objectif" class="m-obj"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--objectif)"><circle cx="14" cy="4.5" r="2" fill="var(--objectif)" stroke="none"/><path d="M13 7.5L11.5 13"/><path d="M13 8.5l3.5 1 1-3"/><path d="M12.8 8.5L9.5 9l-1 3"/><path d="M11.5 13l3 4-2 4"/><path d="M11.5 13L8 16l-3.5-1.5"/><path d="M2 6h3M1 9h2.5" stroke-width="1.1" opacity=".6"/></svg><strong>Objectif</strong><span>Fixer un poids à atteindre</span></button>
+      <button data-go="infos" class="small-info"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--muted)"><path d="M12 6C10 4.8 6.5 4.5 3 5.2v13c3.5-.7 7-.4 9 .8 2-1.2 5.5-1.5 9-.8v-13C17.5 4.5 14 4.8 12 6z"/><path d="M12 6v13"/></svg><strong>Infos / Mémo</strong><span>Notes, bilan, sauvegarde</span></button>
     </nav>`;
-}
+    }
 
-/* ============================================================
-   PESÉE
-   ============================================================ */
-function viewPesee() {
-  app.innerHTML = `
+    /* ============================================================
+       PESÉE
+       ============================================================ */
+    function viewPesee() {
+      app.innerHTML = `
     <h2>Entrer une pesée</h2>
     <div class="entry">
       <label class="kg"><input id="kg" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="00,0" aria-label="Poids en kilos"><span>kg</span></label>
@@ -446,68 +1479,69 @@ function viewPesee() {
     <button class="btn primary" id="save">Valider</button>
     <div class="stack"><button class="btn" data-go="pesees">Tableau des pesées</button></div>`;
 
-  const kg = document.getElementById("kg");
-  const err = document.getElementById("err");
-  const getDate = bindDatePicker(app.querySelector(".datepick"), today());
-  const P = series(pesees);
-  if (P.length) kg.placeholder = fmtKg(P[P.length - 1].kg);
+      const kg = document.getElementById("kg");
+      const err = document.getElementById("err");
+      const getDate = bindDatePicker(app.querySelector(".datepick"), today());
+      const P = series(pesees);
+      if (P.length) kg.placeholder = fmtKg(P[P.length - 1].kg);
+      attachWheel(kg, () => (P.length ? P[P.length - 1].kg : 70), () => parseKg((pesees[pesees.length - 1] || {}).poids ?? ""));
 
-  function savePesee() {
-    const v = parseKg(kg.value);
-    if (v === null) { err.textContent = "Saisissez un poids en kilos, par exemple 92 ou 91,5."; kg.focus(); return; }
-    if (v < 20 || v > 400) { err.textContent = "Ce poids semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
-    const d = getDate();
-    pesees.push({ poids: String(v), date: formatFr(d) });
-    if (savePesees()) {
-      err.textContent = "";
-      kg.value = "";
-      kg.placeholder = fmtKg(v);
-      toast(`Pesée enregistrée : ${fmtKg(v)} kg, ${formatFr(d)}`);
+      function savePesee() {
+        const v = parseKg(kg.value);
+        if (v === null) { err.textContent = "Saisissez un poids en kilos, par exemple 92 ou 91,5."; kg.focus(); return; }
+        if (v < 20 || v > 400) { err.textContent = "Ce poids semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
+        const d = getDate();
+        pesees.push({ poids: String(v), date: formatFr(d) });
+        if (savePesees()) {
+          err.textContent = "";
+          kg.value = "";
+          kg.placeholder = fmtKg(v);
+          toast(`Pesée enregistrée : ${fmtKg(v)} kg, ${formatFr(d)}`);
+        }
+      }
+      document.getElementById("save").addEventListener("click", savePesee);
+      kg.addEventListener("keydown", (e) => { if (e.key === "Enter") savePesee(); });
+      kg.addEventListener("input", () => { err.textContent = ""; });
     }
-  }
-  document.getElementById("save").addEventListener("click", savePesee);
-  kg.addEventListener("keydown", (e) => { if (e.key === "Enter") savePesee(); });
-  kg.addEventListener("input", () => { err.textContent = ""; });
-}
 
-function viewTablePesees() {
-  const P = series(pesees);
-  if (!P.length) {
-    app.innerHTML = `<p class="empty muted">Aucune pesée enregistrée pour le moment.</p>
+    function viewTablePesees() {
+      const P = series(pesees);
+      if (!P.length) {
+        app.innerHTML = `<p class="empty muted">Aucune pesée enregistrée pour le moment.</p>
       <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
-    return;
-  }
-  const rows = P.slice().reverse().map((p, i, arr) => {
-    const prev = arr[i + 1];
-    const delta = prev ? p.kg - prev.kg : null;
-    const cls = delta === null || delta === 0 ? "" : delta < 0 ? "down" : "up";
-    return `<li><div class="d">${formatFr(p.d)}${delta !== null ? `<small class="${cls}">${fmtDelta(delta)} kg</small>` : `<small>Première pesée</small>`}</div>
+        return;
+      }
+      const rows = P.slice().reverse().map((p, i, arr) => {
+        const prev = arr[i + 1];
+        const delta = prev ? p.kg - prev.kg : null;
+        const cls = delta === null || delta === 0 ? "" : delta < 0 ? "down" : "up";
+        return `<li><div class="d">${formatFr(p.d)}${delta !== null ? `<small class="${cls}">${fmtDelta(delta)} kg</small>` : `<small>Première pesée</small>`}</div>
       <div class="k">${fmtKg(p.kg)} kg</div>
       <button class="del" data-del="${p.idx}" aria-label="Supprimer la pesée du ${shortFr(p.d)}">×</button></li>`;
-  }).join("");
-  app.innerHTML = `<h2>Tableau des pesées</h2><ul class="rows">${rows}</ul>
+      }).join("");
+      app.innerHTML = `<h2>Tableau des pesées</h2><ul class="rows">${rows}</ul>
     <button class="btn danger" id="clear">Effacer toutes les pesées</button>`;
 
-  app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
-    const idx = +b.dataset.del;
-    const e = pesees[idx];
-    if (await confirmAsk(`Supprimer la pesée du ${e.date} (${e.poids} kg) ?`, "Supprimer")) {
-      pesees.splice(idx, 1); savePesees(); render(); toast("Pesée supprimée");
+      app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+        const idx = +b.dataset.del;
+        const e = pesees[idx];
+        if (await confirmAsk(`Supprimer la pesée du ${e.date} (${e.poids} kg) ?`, "Supprimer")) {
+          pesees.splice(idx, 1); savePesees(); render(); toast("Pesée supprimée");
+        }
+      }));
+      document.getElementById("clear").addEventListener("click", async () => {
+        if (await confirmAsk("Voulez-vous vraiment effacer toutes les pesées ?", "Tout effacer")) {
+          pesees = []; savePesees(); render(); toast("Toutes les pesées ont été effacées");
+        }
+      });
     }
-  }));
-  document.getElementById("clear").addEventListener("click", async () => {
-    if (await confirmAsk("Voulez-vous vraiment effacer toutes les pesées ?", "Tout effacer")) {
-      pesees = []; savePesees(); render(); toast("Toutes les pesées ont été effacées");
-    }
-  });
-}
 
-/* ============================================================
-   OBJECTIF
-   ============================================================ */
-function viewObjectif() {
-  const def = today(); def.setMonth(def.getMonth() + 1);
-  app.innerHTML = `
+    /* ============================================================
+       OBJECTIF
+       ============================================================ */
+    function viewObjectif() {
+      const def = today(); def.setMonth(def.getMonth() + 1);
+      app.innerHTML = `
     <h2>Définir un objectif</h2>
     <div class="entry">
       <label class="kg"><input id="kg" inputmode="decimal" enterkeyhint="done" autocomplete="off" placeholder="00,0" aria-label="Objectif en kilos"><span>kg</span></label>
@@ -517,275 +1551,277 @@ function viewObjectif() {
     <button class="btn primary" id="save">Valider</button>
     <div class="stack"><button class="btn" data-go="objectifs">Tableau des objectifs</button></div>`;
 
-  const kg = document.getElementById("kg");
-  const err = document.getElementById("err");
-  const getDate = bindDatePicker(app.querySelector(".datepick"), def);
+      const kg = document.getElementById("kg");
+      const err = document.getElementById("err");
+      const getDate = bindDatePicker(app.querySelector(".datepick"), def);
+      const lastP = series(pesees).pop();
+      attachWheel(kg, () => (lastP ? lastP.kg : 70), () => parseKg((objectifs[objectifs.length - 1] || lastP && { poids: lastP.kg } || {}).poids ?? ""));
 
-  function saveObjectif() {
-    const v = parseKg(kg.value);
-    if (v === null) { err.textContent = "Saisissez un poids cible en kilos, par exemple 85."; kg.focus(); return; }
-    if (v < 20 || v > 400) { err.textContent = "Cet objectif semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
-    const d = getDate();
-    objectifs.push({ poids: String(v), date: toISO(d) });
-    if (saveObjectifs()) {
-      err.textContent = ""; kg.value = "";
-      toast(`Objectif enregistré : ${fmtKg(v)} kg le ${shortFr(d)}`);
+      function saveObjectif() {
+        const v = parseKg(kg.value);
+        if (v === null) { err.textContent = "Saisissez un poids cible en kilos, par exemple 85."; kg.focus(); return; }
+        if (v < 20 || v > 400) { err.textContent = "Cet objectif semble incorrect : vérifiez la valeur saisie."; kg.focus(); return; }
+        const d = getDate();
+        objectifs.push({ poids: String(v), date: toISO(d) });
+        if (saveObjectifs()) {
+          err.textContent = ""; kg.value = "";
+          toast(`Objectif enregistré : ${fmtKg(v)} kg le ${shortFr(d)}`);
+        }
+      }
+      document.getElementById("save").addEventListener("click", saveObjectif);
+      kg.addEventListener("keydown", (e) => { if (e.key === "Enter") saveObjectif(); });
+      kg.addEventListener("input", () => { err.textContent = ""; });
     }
-  }
-  document.getElementById("save").addEventListener("click", saveObjectif);
-  kg.addEventListener("keydown", (e) => { if (e.key === "Enter") saveObjectif(); });
-  kg.addEventListener("input", () => { err.textContent = ""; });
-}
 
-function viewTableObjectifs() {
-  const O = series(objectifs);
-  if (!O.length) {
-    app.innerHTML = `<p class="empty muted">Aucun objectif enregistré pour le moment.</p>
+    function viewTableObjectifs() {
+      const O = series(objectifs);
+      if (!O.length) {
+        app.innerHTML = `<p class="empty muted">Aucun objectif enregistré pour le moment.</p>
       <button class="btn primary" data-go="objectif">Définir un objectif</button>`;
-    return;
-  }
-  const t = today();
-  const rows = O.map((o) => `<li><div class="d">${formatFr(o.d)}<small>${o.d < t ? "Date passée" : `Dans ${Math.round((o.d - t) / DAY)} jours`}</small></div>
+        return;
+      }
+      const t = today();
+      const rows = O.map((o) => `<li><div class="d">${formatFr(o.d)}<small>${o.d < t ? "Date passée" : `Dans ${Math.round((o.d - t) / DAY)} jours`}</small></div>
       <div class="k">${fmtKg(o.kg)} kg</div>
       <button class="del" data-del="${o.idx}" aria-label="Supprimer l’objectif du ${shortFr(o.d)}">×</button></li>`).join("");
-  app.innerHTML = `<h2>Tableau des objectifs</h2><ul class="rows">${rows}</ul>
+      app.innerHTML = `<h2>Tableau des objectifs</h2><ul class="rows">${rows}</ul>
     <button class="btn danger" id="clear">Effacer tous les objectifs</button>`;
 
-  app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
-    const idx = +b.dataset.del;
-    if (await confirmAsk(`Supprimer l’objectif de ${objectifs[idx].poids} kg ?`, "Supprimer")) {
-      objectifs.splice(idx, 1); saveObjectifs(); render(); toast("Objectif supprimé");
+      app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+        const idx = +b.dataset.del;
+        if (await confirmAsk(`Supprimer l’objectif de ${objectifs[idx].poids} kg ?`, "Supprimer")) {
+          objectifs.splice(idx, 1); saveObjectifs(); render(); toast("Objectif supprimé");
+        }
+      }));
+      document.getElementById("clear").addEventListener("click", async () => {
+        if (await confirmAsk("Voulez-vous vraiment effacer tous les objectifs ?", "Tout effacer")) {
+          objectifs = []; saveObjectifs(); render(); toast("Tous les objectifs ont été effacés");
+        }
+      });
     }
-  }));
-  document.getElementById("clear").addEventListener("click", async () => {
-    if (await confirmAsk("Voulez-vous vraiment effacer tous les objectifs ?", "Tout effacer")) {
-      objectifs = []; saveObjectifs(); render(); toast("Tous les objectifs ont été effacés");
+
+    /* ============================================================
+       GRAPHIQUE
+       ============================================================ */
+
+    // Tendance linéaire sur les 4 dernières semaines (au moins 2 pesées)
+    function trend(P) {
+      if (P.length < 2) return null;
+      const last = P[P.length - 1].d;
+      let pts = P.filter((p) => (last - p.d) / DAY <= 28);
+      if (pts.length < 2) pts = P.slice(-3);
+      const xs = pts.map((p) => (p.d - last) / DAY), ys = pts.map((p) => p.kg);
+      const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
+      let num = 0, den = 0;
+      xs.forEach((x, i) => { num += (x - mx) * (ys[i] - my); den += (x - mx) ** 2; });
+      if (den === 0) return null;
+      const slope = num / den;                   // kg par jour
+      const atLast = my + slope * (0 - mx);      // valeur de la tendance à la dernière date
+      return { slope, from: last, atLast };
     }
-  });
-}
 
-/* ============================================================
-   GRAPHIQUE
-   ============================================================ */
-
-// Tendance linéaire sur les 4 dernières semaines (au moins 2 pesées)
-function trend(P) {
-  if (P.length < 2) return null;
-  const last = P[P.length - 1].d;
-  let pts = P.filter((p) => (last - p.d) / DAY <= 28);
-  if (pts.length < 2) pts = P.slice(-3);
-  const xs = pts.map((p) => (p.d - last) / DAY), ys = pts.map((p) => p.kg);
-  const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
-  let num = 0, den = 0;
-  xs.forEach((x, i) => { num += (x - mx) * (ys[i] - my); den += (x - mx) ** 2; });
-  if (den === 0) return null;
-  const slope = num / den;                   // kg par jour
-  const atLast = my + slope * (0 - mx);      // valeur de la tendance à la dernière date
-  return { slope, from: last, atLast };
-}
-
-function viewGraphique() {
-  const P = series(pesees), O = series(objectifs);
-  if (!P.length && !O.length) {
-    app.innerHTML = `<p class="empty muted">Aucune donnée pour afficher le graphique. Entrez au moins une pesée.</p>
+    function viewGraphique() {
+      const P = series(pesees), O = series(objectifs);
+      if (!P.length && !O.length) {
+        app.innerHTML = `<p class="empty muted">Aucune donnée pour afficher le graphique. Entrez au moins une pesée.</p>
       <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
-    return;
-  }
-  const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: false };
-  const allDates = [...P, ...O].map((p) => p.d);
-  const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
+        return;
+      }
+      const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: true };
+      const allDates = [...P, ...O].map((p) => p.d);
+      const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
 
-  app.innerHTML = `
+      app.innerHTML = `
     <div class="graph-layout">
-      <div>
+      <div class="modes" id="modes">
+        <button type="button" data-mode="mois" aria-pressed="false">Au mois</button>
+        <button type="button" data-mode="trimestre" aria-pressed="false">Au trimestre</button>
+        <button type="button" data-mode="annee" aria-pressed="false">À l’année</button>
+        <button type="button" data-mode="global" aria-pressed="true">Global</button>
+      </div>
+      <div class="ctrl">
+        <label for="scale">Échelle <output id="scaleOut"></output></label>
+        <input type="range" id="scale" min="0" max="1000" step="1">
+      </div>
+      <div class="chart-box">
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="showVals" checked> Affichage données</label>
+          <label class="check"><input type="checkbox" id="simChk" checked> Simulation</label>
+        </div>
         <div class="chart-wrap" id="chart"></div>
-        <div class="values" id="values" hidden>
-          <div id="cP"><small id="lP">Poids réel</small><b id="vP">--</b></div>
-          <div><small>Objectif</small><b id="vO">--</b></div>
-          <div id="cD"><small>Différence</small><b id="vD">--</b></div>
+      </div>
+      <div class="ctrl">
+        <label for="cur"><button type="button" class="linkbtn" id="curToday" title="Aller à aujourd’hui">Curseur</button> <output id="curOut"></output></label>
+        <div class="cursor-row">
+          <button type="button" class="arrow" id="prevPt" aria-label="Point précédent">◀</button>
+          <button type="button" class="arrow" id="nextPt" aria-label="Point suivant">▶</button>
+          <input type="range" id="cur" min="0" max="100" step="1">
         </div>
       </div>
-      <div>
-        <div class="ctrl">
-          <label for="cur"><button type="button" class="linkbtn" id="curToday" title="Aller à aujourd’hui">Curseur</button> <output id="curOut"></output></label>
-          <div class="cursor-row">
-            <button type="button" class="arrow" id="prevPt" aria-label="Point précédent">◀</button>
-            <button type="button" class="arrow" id="nextPt" aria-label="Point suivant">▶</button>
-            <input type="range" id="cur" min="0" max="100" step="1">
-          </div>
-        </div>
-        <div class="ctrl">
-          <label for="scale">Échelle <output id="scaleOut"></output></label>
-          <input type="range" id="scale" min="0" max="1000" step="1">
-          <div class="modes" id="modes">
-            <button type="button" data-mode="mois" aria-pressed="false">Au mois</button>
-            <button type="button" data-mode="trimestre" aria-pressed="false">Au trimestre</button>
-            <button type="button" data-mode="annee" aria-pressed="false">À l’année</button>
-            <button type="button" data-mode="global" aria-pressed="true">Global</button>
-          </div>
-        </div>
-        <label class="check"><input type="checkbox" id="showVals"> Afficher les données au curseur</label>
-        <div class="stack"><button class="btn" id="simBtn" aria-pressed="false">Simulation</button></div>
-        <p class="simtxt" id="simTxt" hidden></p>
+      <div class="values" id="values" hidden>
+        <div id="cP"><small id="lP">Poids réel</small><b id="vP">--</b></div>
+        <div class="obj" id="cO"><small>Objectif</small><b id="vO">--</b></div>
+        <div id="cD"><small>Différence</small><b id="vD">--</b></div>
       </div>
+      <p class="simtxt" id="simTxt" hidden></p>
     </div>`;
 
-  const cur = document.getElementById("cur"), scale = document.getElementById("scale");
-  scale.value = state.t;
+      const cur = document.getElementById("cur"), scale = document.getElementById("scale");
+      scale.value = state.t;
 
-  const tMin = new Date(first.getFullYear(), first.getMonth(), first.getDate());
-  const dateAt = (n) => new Date(tMin.getFullYear(), tMin.getMonth(), tMin.getDate() + n);
-  const dayIdx = (d) => Math.round((d - tMin) / DAY);
+      const tMin = new Date(first.getFullYear(), first.getMonth(), first.getDate());
+      const dateAt = (n) => new Date(tMin.getFullYear(), tMin.getMonth(), tMin.getDate() + n);
+      const dayIdx = (d) => Math.round((d - tMin) / DAY);
 
-  // Échelles : [mini, défaut (milieu du slider), maxi] en jours ; Global dépend des données
-  const Q = 91.3125;
-  function dataEnd() {
-    const { simEnd } = simInfo();
-    return new Date(Math.max(+lastAll, simEnd ? +simEnd : 0));
-  }
-  function simInfo() {
-    const tr = state.sim ? trend(P) : null;
-    let simEnd = null;
-    if (tr) {
-      const lastP = P[P.length - 1].d;
-      const lastO = O.length ? O[O.length - 1].d : null;
-      simEnd = lastO && lastO > lastP ? lastO : new Date(+lastP + 30 * DAY);
-    }
-    return { tr, simEnd };
-  }
-  function scaleDays() {
-    if (state.mode === "mois") return [1, 31, Q];
-    if (state.mode === "trimestre") return [7, Q, 365];
-    if (state.mode === "annee") return [7, 365, 730];
-    const base = Math.max(7, (dataEnd() - tMin) / DAY * 1.1);
-    return [base / 3, base, base * 3];
-  }
-  // Interpolation logarithmique par moitié : le milieu du slider vaut exactement la valeur par défaut
-  function lenDays() {
-    const [mn, mid, mx] = scaleDays(), u = state.t / 1000;
-    return u <= 0.5 ? mn * Math.pow(mid / mn, u * 2) : mid * Math.pow(mx / mid, (u - 0.5) * 2);
-  }
-  function fmtLen(d) {
-    if (d < 60) return `${Math.round(d)} jour${Math.round(d) > 1 ? "s" : ""}`;
-    if (d < 700) return `${(d / 30.44).toFixed(1).replace(".", ",")} mois`;
-    return `${(d / 365.25).toFixed(1).replace(".", ",")} ans`;
-  }
-
-  function windowRange() {
-    const { tr, simEnd } = simInfo();
-    const tEnd = new Date(Math.max(+lastAll, +today(), simEnd ? +simEnd : 0));
-    const len = lenDays() * DAY;
-    // Centre : cursor-centré ; en mode auto, Année et Global partent de leur vue par défaut
-    // puis tendent vers le curseur à mesure que l'échelle s'éloigne du milieu du slider
-    let centre = +dateAt(state.cursor);
-    if (state.auto) {
-      if (state.mode === "annee" || state.mode === "global") {
-        const def = state.mode === "annee"
-          ? +new Date(today().getFullYear(), 0, 1) + 182.5 * DAY
-          : +tMin + Math.max(7 * DAY, (dataEnd() - tMin) * 1.1) / 2;
-        const w = Math.abs(state.t - 500) / 500;
-        centre = def + (+today() - def) * w;
-      } else centre = +today();
-    }
-    let start = new Date(centre - len / 2), end;
-    if (state.mode === "annee" && state.auto) {
-      // Zoom ancré sur aujourd'hui : sa position à l'écran passe de celle de la vue par défaut au centre
-      const jan1 = +new Date(today().getFullYear(), 0, 1);
-      const p0 = Math.min(1, Math.max(0, (+today() - jan1) / (365 * DAY)));
-      const w = Math.abs(state.t - 500) / 500;
-      start = new Date(+today() - (p0 + (0.5 - p0) * w) * len);
-      end = new Date(+start + len);
-    }
-    else {
-      const tEndView = Math.max(+tEnd, +tMin + (dataEnd() - tMin) * 1.1);
-      if (start < tMin) start = new Date(tMin);
-      end = new Date(+start + len);
-      if (end > tEndView) { end = new Date(Math.max(tEndView, +tMin + len)); start = new Date(+end - len); }
-    }
-    return { start, end, tr, simEnd, tMax: tEnd };
-  }
-
-  function setCursor(n) { state.cursor = n; state.auto = false; }
-  function setMode(m) {
-    state.mode = m; state.t = 500; state.auto = true;
-    state.cursor = Math.max(0, dayIdx(today()));
-    scale.value = state.t;
-  }
-
-  // Points parcourus par les flèches : pesées, puis objectifs au-delà
-  function stops() {
-    const lastP = P.length ? P[P.length - 1].d : -Infinity;
-    return [...new Set([...P.map((p) => +p.d), ...O.filter((p) => p.d > lastP).map((p) => +p.d)])].sort((a, b) => a - b);
-  }
-
-  state.cursor = Math.max(0, dayIdx(today()));
-
-  function draw() {
-    const { start, end, tr, simEnd, tMax } = windowRange();
-    cur.max = Math.max(1, dayIdx(tMax));
-    state.cursor = Math.min(state.cursor, +cur.max);
-    const box = document.getElementById("chart");
-    const W = Math.max(320, Math.round(box.clientWidth - 8)), H = Math.round(Math.min(380, Math.max(230, W * 0.6)));
-    const L = 40, R = 14, T = 14, B = 34;
-    const cd = dateAt(state.cursor);
-
-    // Points de la simulation
-    let simPts = [], at = null;
-    if (tr) {
-      at = (d) => tr.atLast + tr.slope * (d - tr.from) / DAY;
-      simPts = [{ d: P[P.length - 1].d, kg: P[P.length - 1].kg }, { d: simEnd, kg: at(simEnd) }];
-    }
-
-    // Plage verticale : valeurs visibles uniquement
-    const inWin = (p) => p.d >= start && p.d <= end;
-    const vis = [...P.filter(inWin), ...O.filter(inWin), ...simPts.filter(inWin)].map((p) => p.kg);
-    [P, O].forEach((S) => { const v = interpolate(S, start); if (v !== null) vis.push(v); const w = interpolate(S, end); if (w !== null) vis.push(w); });
-    if (!vis.length) [...P, ...O].forEach((p) => vis.push(p.kg));
-    let ymin = Math.floor(Math.min(...vis) - 1), ymax = Math.ceil(Math.max(...vis) + 1);
-    const span = ymax - ymin;
-    const step = span <= 6 ? 1 : span <= 14 ? 2 : span <= 30 ? 5 : 10;
-    ymin = Math.floor(ymin / step) * step; ymax = Math.ceil(ymax / step) * step;
-
-    const x = (d) => L + (W - L - R) * (d - start) / (end - start);
-    const y = (v) => T + (H - T - B) * (ymax - v) / (ymax - ymin);
-
-    let g = "";
-    for (let v = ymin; v <= ymax; v += step) {
-      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>
-            <text class="ax" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-    }
-    // Graduations horizontales
-    const ticks = [];
-    const lenD = (end - start) / DAY;
-    if (lenD <= 10) {
-      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
-      for (; d <= end; d.setDate(d.getDate() + 1)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
-    } else if (lenD <= 70) {
-      const d = new Date(start); d.setDate(d.getDate() + ((8 - d.getDay()) % 7)); // lundi suivant
-      for (; d <= end; d.setDate(d.getDate() + 7)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
-    } else {
-      const every = lenD <= 400 ? 1 : 3;
-      const d = new Date(start.getFullYear(), start.getMonth() + (start.getDate() === 1 && start.getHours() === 0 ? 0 : 1), 1);
-      for (; d <= end; d.setMonth(d.getMonth() + every)) {
-        ticks.push([new Date(d), lenD <= 400 ? MOIS_COURTS[d.getMonth()] : `${MOIS_COURTS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`]);
+      // Échelles : [mini, défaut (milieu du slider), maxi] en jours ; Global dépend des données
+      const Q = 91.3125;
+      function dataEnd() {
+        const { simEnd } = simInfo();
+        return new Date(Math.max(+lastAll, simEnd ? +simEnd : 0));
       }
-    }
-    ticks.forEach(([d, lbl]) => {
-      g += `<line class="grid" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}" stroke-dasharray="2 4"/>
+      function simInfo() {
+        const tr = state.sim ? trend(P) : null;
+        let simEnd = null;
+        if (tr) {
+          const lastP = P[P.length - 1].d;
+          const lastO = O.length ? O[O.length - 1].d : null;
+          simEnd = lastO && lastO > lastP ? lastO : new Date(+lastP + 30 * DAY);
+        }
+        return { tr, simEnd };
+      }
+      function scaleDays() {
+        if (state.mode === "mois") return [1, 31, Q];
+        if (state.mode === "trimestre") return [7, Q, 365];
+        if (state.mode === "annee") return [7, 365, 730];
+        const base = Math.max(7, (dataEnd() - tMin) / DAY * 1.1);
+        return [base / 3, base, base * 3];
+      }
+      // Interpolation logarithmique par moitié : le milieu du slider vaut exactement la valeur par défaut
+      function lenDays() {
+        const [mn, mid, mx] = scaleDays(), u = state.t / 1000;
+        return u <= 0.5 ? mn * Math.pow(mid / mn, u * 2) : mid * Math.pow(mx / mid, (u - 0.5) * 2);
+      }
+      function fmtLen(d) {
+        if (d < 60) return `${Math.round(d)} jour${Math.round(d) > 1 ? "s" : ""}`;
+        if (d < 700) return `${(d / 30.44).toFixed(1).replace(".", ",")} mois`;
+        return `${(d / 365.25).toFixed(1).replace(".", ",")} ans`;
+      }
+
+      function windowRange() {
+        const { tr, simEnd } = simInfo();
+        const tEnd = new Date(Math.max(+lastAll, +today(), simEnd ? +simEnd : 0));
+        const len = lenDays() * DAY;
+        // Centre : cursor-centré ; en mode auto, Année et Global partent de leur vue par défaut
+        // puis tendent vers le curseur à mesure que l'échelle s'éloigne du milieu du slider
+        let centre = +dateAt(state.cursor);
+        if (state.auto) {
+          if (state.mode === "annee" || state.mode === "global") {
+            const def = state.mode === "annee"
+              ? +new Date(today().getFullYear(), 0, 1) + 182.5 * DAY
+              : +tMin + Math.max(7 * DAY, (dataEnd() - tMin) * 1.1) / 2;
+            const w = Math.abs(state.t - 500) / 500;
+            centre = def + (+today() - def) * w;
+          } else centre = +today();
+        }
+        let start = new Date(centre - len / 2), end;
+        if (state.mode === "annee" && state.auto) {
+          // Zoom ancré sur aujourd'hui : sa position à l'écran passe de celle de la vue par défaut au centre
+          const jan1 = +new Date(today().getFullYear(), 0, 1);
+          const p0 = Math.min(1, Math.max(0, (+today() - jan1) / (365 * DAY)));
+          const w = Math.abs(state.t - 500) / 500;
+          start = new Date(+today() - (p0 + (0.5 - p0) * w) * len);
+          end = new Date(+start + len);
+        }
+        else {
+          const tEndView = Math.max(+tEnd, +tMin + (dataEnd() - tMin) * 1.1);
+          if (start < tMin) start = new Date(tMin);
+          end = new Date(+start + len);
+          if (end > tEndView) { end = new Date(Math.max(tEndView, +tMin + len)); start = new Date(+end - len); }
+        }
+        return { start, end, tr, simEnd, tMax: tEnd };
+      }
+
+      function setCursor(n) { state.cursor = n; state.auto = false; }
+      function setMode(m) {
+        state.mode = m; state.t = 500; state.auto = true;
+        state.cursor = Math.max(0, dayIdx(today()));
+        scale.value = state.t;
+      }
+
+      // Points parcourus par les flèches : pesées, puis objectifs au-delà
+      function stops() {
+        const lastP = P.length ? P[P.length - 1].d : -Infinity;
+        return [...new Set([...P.map((p) => +p.d), ...O.filter((p) => p.d > lastP).map((p) => +p.d)])].sort((a, b) => a - b);
+      }
+
+      state.cursor = Math.max(0, dayIdx(today()));
+
+      function draw() {
+        const { start, end, tr, simEnd, tMax } = windowRange();
+        cur.max = Math.max(1, dayIdx(tMax));
+        state.cursor = Math.min(state.cursor, +cur.max);
+        const box = document.getElementById("chart");
+        const W = Math.max(320, Math.round(box.clientWidth - 8)), H = Math.round(Math.min(380, Math.max(230, W * 0.6)));
+        const L = 40, R = 14, T = 14, B = 34;
+        const cd = dateAt(state.cursor);
+
+        // Points de la simulation
+        let simPts = [], at = null;
+        if (tr) {
+          at = (d) => tr.atLast + tr.slope * (d - tr.from) / DAY;
+          simPts = [{ d: P[P.length - 1].d, kg: P[P.length - 1].kg }, { d: simEnd, kg: at(simEnd) }];
+        }
+
+        // Plage verticale : valeurs visibles uniquement
+        const inWin = (p) => p.d >= start && p.d <= end;
+        const vis = [...P.filter(inWin), ...O.filter(inWin), ...simPts.filter(inWin)].map((p) => p.kg);
+        [P, O].forEach((S) => { const v = interpolate(S, start); if (v !== null) vis.push(v); const w = interpolate(S, end); if (w !== null) vis.push(w); });
+        if (!vis.length) [...P, ...O].forEach((p) => vis.push(p.kg));
+        let ymin = Math.floor(Math.min(...vis) - 1), ymax = Math.ceil(Math.max(...vis) + 1);
+        const span = ymax - ymin;
+        const step = span <= 6 ? 1 : span <= 14 ? 2 : span <= 30 ? 5 : 10;
+        ymin = Math.floor(ymin / step) * step; ymax = Math.ceil(ymax / step) * step;
+
+        const x = (d) => L + (W - L - R) * (d - start) / (end - start);
+        const y = (v) => T + (H - T - B) * (ymax - v) / (ymax - ymin);
+
+        let g = "";
+        for (let v = ymin; v <= ymax; v += step) {
+          g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>
+            <text class="ax" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+        }
+        // Graduations horizontales
+        const ticks = [];
+        const lenD = (end - start) / DAY;
+        if (lenD <= 10) {
+          const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1);
+          for (; d <= end; d.setDate(d.getDate() + 1)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
+        } else if (lenD <= 70) {
+          const d = new Date(start); d.setDate(d.getDate() + ((8 - d.getDay()) % 7)); // lundi suivant
+          for (; d <= end; d.setDate(d.getDate() + 7)) ticks.push([new Date(d), `${pad(d.getDate())}/${pad(d.getMonth() + 1)}`]);
+        } else {
+          const every = lenD <= 400 ? 1 : 3;
+          const d = new Date(start.getFullYear(), start.getMonth() + (start.getDate() === 1 && start.getHours() === 0 ? 0 : 1), 1);
+          for (; d <= end; d.setMonth(d.getMonth() + every)) {
+            ticks.push([new Date(d), lenD <= 400 ? MOIS_COURTS[d.getMonth()] : `${MOIS_COURTS[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`]);
+          }
+        }
+        ticks.forEach(([d, lbl]) => {
+          g += `<line class="grid" x1="${x(d)}" x2="${x(d)}" y1="${T}" y2="${H - B}" stroke-dasharray="2 4"/>
             <text class="ax" x="${x(d)}" y="${H - B + 20}" text-anchor="middle">${lbl}</text>`;
-    });
+        });
 
-    const line = (pts, color, dash) => pts.length < 2 ? "" :
-      `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : ""}
+        const line = (pts, color, dash) => pts.length < 2 ? "" :
+          `<polyline fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" ${dash ? `stroke-dasharray="${dash}"` : ""}
         points="${pts.map((p) => `${x(p.d).toFixed(1)},${y(p.kg).toFixed(1)}`).join(" ")}"/>`;
-    const dots = (pts, color, hollow, sid) => pts.map((p, i) => {
-      const cxp = x(p.d).toFixed(1), cyp = y(p.kg).toFixed(1), fill = hollow ? "var(--surface)" : color;
-      return `<circle class="dot" data-k="${sid}${i}" data-fill="${fill}" data-stroke="${color}" cx="${cxp}" cy="${cyp}" r="2.25" fill="${fill}" stroke="${color}" stroke-width="1"/>` +
-        (showVals.checked ? `<circle class="hit" data-k="${sid}${i}" cx="${cxp}" cy="${cyp}" r="10" fill="transparent"/>` : "");
-    }).join("");
+        const dots = (pts, color, hollow, sid) => pts.map((p, i) => {
+          const cxp = x(p.d).toFixed(1), cyp = y(p.kg).toFixed(1), fill = hollow ? "var(--surface)" : color;
+          return `<circle class="dot" data-k="${sid}${i}" data-fill="${fill}" data-stroke="${color}" cx="${cxp}" cy="${cyp}" r="2.25" fill="${fill}" stroke="${color}" stroke-width="1"/>` +
+            (showVals.checked ? `<circle class="hit" data-k="${sid}${i}" cx="${cxp}" cy="${cyp}" r="10" fill="transparent"/>` : "");
+        }).join("");
 
-    const cx = x(cd);
-    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique du poids réel et des objectifs">
+        const cx = x(cd);
+        const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Graphique du poids réel et des objectifs">
       <defs><clipPath id="clip"><rect x="${L - 6}" y="${T - 6}" width="${W - L - R + 12}" height="${H - T - B + 12}"/></clipPath></defs>
       ${g}
       <g clip-path="url(#clip)">
@@ -802,187 +1838,200 @@ function viewGraphique() {
     <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
       <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
       ${tr ? `<span><i style="border-color:var(--sim);border-top-style:dotted"></i>Tendance</span>` : ""}</div>`;
-    document.getElementById("chart").innerHTML = svg;
+        document.getElementById("chart").innerHTML = svg;
 
-    // Valeurs au curseur
-    const vp = interpolate(P, cd), vo = interpolate(O, cd);
-    // Au-delà des pesées, on affiche la simulation si elle est présente
-    const vs = vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
-    const vShow = vp !== null ? vp : vs;
-    const isSim = vp === null && vs !== null;
-    document.getElementById("lP").textContent = isSim ? "Poids simulé" : "Poids réel";
-    document.getElementById("cP").classList.toggle("sim", isSim);
-    document.getElementById("cD").classList.toggle("sim", isSim);
-    cur.value = state.cursor;
-    document.getElementById("values").hidden = !showVals.checked;
-    document.getElementById("curOut").textContent = formatFr(cd);
-    document.getElementById("scaleOut").textContent = fmtLen(lenDays());
-    document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
-    document.getElementById("vP").textContent = vShow === null ? "--" : `${fmtKg(vShow)} kg`;
-    document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
-    document.getElementById("vD").textContent = vShow === null || vo === null ? "--" : `${fmtDelta(vShow - vo)} kg`;
+        // Valeurs au curseur
+        const vp = interpolate(P, cd), vo = interpolate(O, cd);
+        // Au-delà des pesées, on affiche la simulation si elle est présente
+        const vs = vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
+        const vShow = vp !== null ? vp : vs;
+        const isSim = vp === null && vs !== null;
+        document.getElementById("lP").textContent = isSim ? "Poids simulé" : "Poids réel";
+        document.getElementById("cP").classList.toggle("sim", isSim);
+        document.getElementById("cD").classList.toggle("sim", isSim);
+        cur.value = state.cursor;
+        document.getElementById("values").hidden = !showVals.checked;
+        document.getElementById("curOut").textContent = formatFr(cd);
+        document.getElementById("scaleOut").textContent = fmtLen(lenDays());
+        document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
+        document.getElementById("vP").textContent = vShow === null ? "--" : `${fmtKg(vShow)} kg`;
+        document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
+        document.getElementById("vD").textContent = vShow === null || vo === null ? "--" : `${fmtDelta(vShow - vo)} kg`;
 
-    state.simAt = at; state.simEnd = simEnd;
-    refreshTip();
+        state.simAt = at; state.simEnd = simEnd;
+        refreshTip();
 
-    // Texte de simulation
-    const simTxt = document.getElementById("simTxt");
-    simTxt.hidden = !state.sim;
-    if (state.sim) {
-      if (!tr) simTxt.textContent = "Il faut au moins deux pesées à des dates différentes pour calculer une tendance.";
-      else {
-        const parSemaine = tr.slope * 7;
-        let txt = `Rythme des 4 dernières semaines : ${fmtDelta(parSemaine)} kg par semaine.`;
-        const next = nextObjective();
-        const lastKg = P[P.length - 1].kg;
-        if (next && next.kg < lastKg) {
-          if (tr.slope < 0) {
-            const jours = (next.kg - lastKg) / tr.slope;
-            const quand = new Date(+P[P.length - 1].d + jours * DAY);
-            txt += ` À ce rythme, ${fmtKg(next.kg)} kg serait atteint vers le ${shortFr(quand)} (objectif fixé au ${shortFr(next.d)}).`;
-          } else txt += ` À ce rythme, l’objectif de ${fmtKg(next.kg)} kg ne serait pas atteint.`;
+        // Texte de simulation
+        const simTxt = document.getElementById("simTxt");
+        simTxt.hidden = !state.sim;
+        if (state.sim) {
+          if (!tr) simTxt.textContent = "Il faut au moins deux pesées à des dates différentes pour calculer une tendance.";
+          else {
+            const parSemaine = tr.slope * 7;
+            let txt = `Rythme des 4 dernières semaines : ${fmtDelta(parSemaine)} kg par semaine.`;
+            const next = nextObjective();
+            const lastKg = P[P.length - 1].kg;
+            if (next && next.kg < lastKg) {
+              if (tr.slope < 0) {
+                const jours = (next.kg - lastKg) / tr.slope;
+                const quand = new Date(+P[P.length - 1].d + jours * DAY);
+                txt += ` À ce rythme, ${fmtKg(next.kg)} kg serait atteint vers le ${shortFr(quand)} (objectif fixé au ${shortFr(next.d)}).`;
+              } else txt += ` À ce rythme, l’objectif de ${fmtKg(next.kg)} kg ne serait pas atteint.`;
+            }
+            simTxt.textContent = txt;
+          }
         }
-        simTxt.textContent = txt;
       }
-    }
-  }
 
-  const showVals = document.getElementById("showVals");
-  state.hover = null; state.pin = null;
-  // Point affiché en haut à droite : le survol l'emporte sur le clic
-  function refreshTip() {
-    const key = showVals.checked ? (state.hover || state.pin) : null;
-    document.querySelectorAll("#chart circle.dot").forEach((c) => {
-      const on = c.dataset.k === key;
-      c.setAttribute("fill", on ? "var(--ok)" : c.dataset.fill);
-      c.setAttribute("stroke", on ? "var(--ok)" : c.dataset.stroke);
-      c.setAttribute("r", on ? (key === state.pin ? 9 : 7) : 2.25);
-    });
-    const tv = document.getElementById("tipV"), td = document.getElementById("tipD"), ts = document.getElementById("tipS"), tr_ = document.getElementById("tipR");
-    if (!tv) return;
-    const pt = key && (key[0] === "P" ? P : O)[+key.slice(1)];
-    tv.textContent = pt ? `${fmtKg(pt.kg)} kg` : "";
-    td.textContent = pt ? shortFr(pt.d) : "";
-    tv.setAttribute("fill", key && key[0] === "O" ? "var(--objectif)" : "var(--poids)");
-    const sv = pt && state.simAt && P.length && pt.d >= P[P.length - 1].d && pt.d <= state.simEnd ? state.simAt(pt.d) : null;
-    ts.textContent = sv === null ? "" : `${fmtKg(sv)} kg simulé`;
-    // Placement à côté du point, décalé vers le haut-droite (ou ailleurs si le bord est atteint)
-    const dot = pt && document.querySelector(`#chart circle.dot[data-k="${key}"]`);
-    const clip = document.querySelector("#clip rect");
-    const lines = [tv, td, ts].filter((n) => n.textContent);
-    const cx0 = dot ? +dot.getAttribute("cx") : 0, cy0 = dot ? +dot.getAttribute("cy") : 0;
-    const inPlot = dot && cx0 >= +clip.getAttribute("x") && cx0 <= +clip.getAttribute("x") + +clip.getAttribute("width");
-    if (!inPlot) { [tv, td, ts].forEach((n) => (n.textContent = "")); tr_.setAttribute("visibility", "hidden"); return; }
-    const svgW = document.querySelector("#chart svg").viewBox.baseVal.width, svgT = +clip.getAttribute("y");
-    const gap = key === state.pin ? 16 : 14, LH = 16;
-    const place = (right, above) => lines.forEach((n, i) => {
-      n.setAttribute("text-anchor", right ? "start" : "end");
-      n.setAttribute("x", cx0 + (right ? gap : -gap));
-      n.setAttribute("y", above ? cy0 - gap - (lines.length - 1 - i) * LH : cy0 + gap + 10 + i * LH);
-    });
-    const box = () => {
-      const bb = lines.map((n) => n.getBBox());
-      return { x0: Math.min(...bb.map((r) => r.x)) - 6, x1: Math.max(...bb.map((r) => r.x + r.width)) + 6,
-               y0: Math.min(...bb.map((r) => r.y)) - 3, y1: Math.max(...bb.map((r) => r.y + r.height)) + 3 };
-    };
-    place(true, true);
-    let bx = box();
-    if (bx.x1 > svgW - 4) { place(false, true); bx = box(); }
-    if (bx.y0 < svgT) { place(bx.x0 > cx0, false); bx = box(); }
-    // Encadré vert uniquement pour un point cliqué
-    if (key === state.pin) {
-      tr_.setAttribute("x", bx.x0); tr_.setAttribute("y", bx.y0);
-      tr_.setAttribute("width", bx.x1 - bx.x0); tr_.setAttribute("height", bx.y1 - bx.y0);
-      tr_.setAttribute("visibility", "visible");
-    } else tr_.setAttribute("visibility", "hidden");
-  }
-  const chartEl = document.getElementById("chart");
-  const keyOf = (e) => { const h = e.target.closest && e.target.closest("circle.hit"); return h ? h.dataset.k : null; };
-  // Gestes : un doigt / la souris fait défiler le curseur, deux doigts règlent l'échelle (slider uniquement)
-  const ptrs = new Map();
-  let pan = null, pinch = null;
-  const tFromLen = (len) => {
-    const [mn, mid, mx] = scaleDays();
-    len = Math.min(mx, Math.max(mn, len));
-    const u = len <= mid ? 0.5 * Math.log(len / mn) / Math.log(mid / mn) : 0.5 + 0.5 * Math.log(len / mid) / Math.log(mx / mid);
-    return Math.round(u * 1000);
-  };
-  const pinchDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
-  chartEl.addEventListener("click", (e) => { if (state.dragged) { state.dragged = false; e.stopImmediatePropagation(); } }, true);
-  chartEl.addEventListener("pointerdown", (e) => {
-    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (ptrs.size === 1) pan = { x0: e.clientX, c0: state.cursor, moved: false, id: e.pointerId };
-    else if (ptrs.size === 2) { pan = null; pinch = { d0: pinchDist(), len0: lenDays() }; }
-  });
-  chartEl.addEventListener("pointermove", (e) => {
-    if (!ptrs.has(e.pointerId)) return;
-    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pinch && ptrs.size >= 2) {
-      state.dragged = true;
-      const t = tFromLen(pinch.len0 * pinch.d0 / pinchDist());
-      if (t !== state.t) { state.t = t; scale.value = t; draw(); }
-    } else if (pan && e.pointerId === pan.id) {
-      const dx = e.clientX - pan.x0;
-      if (!pan.moved && Math.abs(dx) < 6) return;
-      if (!pan.moved) { pan.moved = true; state.dragged = true; state.hover = null; try { chartEl.setPointerCapture(e.pointerId); } catch (_) {} }
-      const plotW = Math.max(100, chartEl.clientWidth - 54);
-      const n = Math.round(pan.c0 - dx / plotW * lenDays());
-      const c = Math.min(+cur.max, Math.max(0, n));
-      if (c !== state.cursor) { setCursor(c); draw(); }
+      const showVals = document.getElementById("showVals");
+      state.hover = null; state.pin = null;
+      // Point affiché en haut à droite : le survol l'emporte sur le clic
+      function refreshTip() {
+        const key = showVals.checked ? (state.hover || state.pin) : null;
+        document.querySelectorAll("#chart circle.dot").forEach((c) => {
+          const on = c.dataset.k === key;
+          c.setAttribute("fill", on ? "var(--ok)" : c.dataset.fill);
+          c.setAttribute("stroke", on ? "var(--ok)" : c.dataset.stroke);
+          c.setAttribute("r", on ? (key === state.pin ? 9 : 7) : 2.25);
+        });
+        const tv = document.getElementById("tipV"), td = document.getElementById("tipD"), ts = document.getElementById("tipS"), tr_ = document.getElementById("tipR");
+        if (!tv) return;
+        const pt = key && (key[0] === "P" ? P : O)[+key.slice(1)];
+        tv.textContent = pt ? `${fmtKg(pt.kg)} kg` : "";
+        td.textContent = pt ? shortFr(pt.d) : "";
+        tv.setAttribute("fill", key && key[0] === "O" ? "var(--objectif)" : "var(--poids)");
+        const sv = pt && state.simAt && P.length && pt.d >= P[P.length - 1].d && pt.d <= state.simEnd ? state.simAt(pt.d) : null;
+        ts.textContent = sv === null ? "" : `${fmtKg(sv)} kg simulé`;
+        // Placement à côté du point, décalé vers le haut-droite (ou ailleurs si le bord est atteint)
+        const dot = pt && document.querySelector(`#chart circle.dot[data-k="${key}"]`);
+        const clip = document.querySelector("#clip rect");
+        const lines = [tv, td, ts].filter((n) => n.textContent);
+        const cx0 = dot ? +dot.getAttribute("cx") : 0, cy0 = dot ? +dot.getAttribute("cy") : 0;
+        const inPlot = dot && cx0 >= +clip.getAttribute("x") && cx0 <= +clip.getAttribute("x") + +clip.getAttribute("width");
+        if (!inPlot) { [tv, td, ts].forEach((n) => (n.textContent = "")); tr_.setAttribute("visibility", "hidden"); return; }
+        const svgW = document.querySelector("#chart svg").viewBox.baseVal.width, svgT = +clip.getAttribute("y");
+        const gap = key === state.pin ? 16 : 14, LH = 16;
+        const place = (right, above) => lines.forEach((n, i) => {
+          n.setAttribute("text-anchor", right ? "start" : "end");
+          n.setAttribute("x", cx0 + (right ? gap : -gap));
+          n.setAttribute("y", above ? cy0 - gap - (lines.length - 1 - i) * LH : cy0 + gap + 10 + i * LH);
+        });
+        const box = () => {
+          const bb = lines.map((n) => n.getBBox());
+          return {
+            x0: Math.min(...bb.map((r) => r.x)) - 6, x1: Math.max(...bb.map((r) => r.x + r.width)) + 6,
+            y0: Math.min(...bb.map((r) => r.y)) - 3, y1: Math.max(...bb.map((r) => r.y + r.height)) + 3
+          };
+        };
+        place(true, true);
+        let bx = box();
+        if (bx.x1 > svgW - 4) { place(false, true); bx = box(); }
+        if (bx.y0 < svgT) { place(bx.x0 > cx0, false); bx = box(); }
+        // Encadré vert uniquement pour un point cliqué
+        if (key === state.pin) {
+          tr_.setAttribute("x", bx.x0); tr_.setAttribute("y", bx.y0);
+          tr_.setAttribute("width", bx.x1 - bx.x0); tr_.setAttribute("height", bx.y1 - bx.y0);
+          tr_.setAttribute("visibility", "visible");
+        } else tr_.setAttribute("visibility", "hidden");
+      }
+      const chartEl = document.getElementById("chart");
+      const keyOf = (e) => { const h = e.target.closest && e.target.closest("circle.hit"); return h ? h.dataset.k : null; };
+      // Gestes : un doigt / la souris fait défiler le curseur, deux doigts règlent l'échelle (slider uniquement)
+      const ptrs = new Map();
+      let pan = null, pinch = null;
+      const tFromLen = (len) => {
+        const [mn, mid, mx] = scaleDays();
+        len = Math.min(mx, Math.max(mn, len));
+        const u = len <= mid ? 0.5 * Math.log(len / mn) / Math.log(mid / mn) : 0.5 + 0.5 * Math.log(len / mid) / Math.log(mx / mid);
+        return Math.round(u * 1000);
+      };
+      const pinchDist = () => { const [a, b] = [...ptrs.values()]; return Math.hypot(a.x - b.x, a.y - b.y) || 1; };
+      chartEl.addEventListener("click", (e) => { if (state.dragged) { state.dragged = false; e.stopImmediatePropagation(); } }, true);
+      chartEl.addEventListener("pointerdown", (e) => {
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (ptrs.size === 1) pan = { x0: e.clientX, c0: state.cursor, moved: false, id: e.pointerId };
+        else if (ptrs.size === 2) { pan = null; pinch = { d0: pinchDist(), len0: lenDays() }; }
+      });
+      chartEl.addEventListener("pointermove", (e) => {
+        if (!ptrs.has(e.pointerId)) return;
+        ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pinch && ptrs.size >= 2) {
+          state.dragged = true;
+          const t = tFromLen(pinch.len0 * pinch.d0 / pinchDist());
+          if (t !== state.t) { state.t = t; scale.value = t; draw(); }
+        } else if (pan && e.pointerId === pan.id) {
+          const dx = e.clientX - pan.x0;
+          if (!pan.moved && Math.abs(dx) < 6) return;
+          if (!pan.moved) { pan.moved = true; state.dragged = true; state.hover = null; try { chartEl.setPointerCapture(e.pointerId); } catch (_) { } }
+          const plotW = Math.max(100, chartEl.clientWidth - 54);
+          const n = Math.round(pan.c0 - dx / plotW * lenDays());
+          const c = Math.min(+cur.max, Math.max(0, n));
+          if (c !== state.cursor) { setCursor(c); draw(); }
+        }
+      });
+      const endPtr = (e) => {
+        ptrs.delete(e.pointerId);
+        if (ptrs.size < 2) pinch = null;
+        if (ptrs.size === 0) { pan = null; setTimeout(() => { state.dragged = false; }, 0); }
+      };
+      chartEl.addEventListener("pointerup", endPtr);
+      chartEl.addEventListener("pointercancel", endPtr);
+      chartEl.addEventListener("mouseover", (e) => { const k = keyOf(e); if (k) { state.hover = k; refreshTip(); } });
+      chartEl.addEventListener("mouseout", (e) => { if (keyOf(e)) { state.hover = null; refreshTip(); } });
+      chartEl.addEventListener("click", (e) => {
+        const k = keyOf(e);
+        if (k) { state.pin = state.pin === k ? null : k; refreshTip(); }
+      });
+      showVals.addEventListener("change", () => { state.hover = null; state.pin = null; draw(); });
+      cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
+      document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
+      document.getElementById("prevPt").addEventListener("click", () => {
+        const c = +dateAt(state.cursor), prev = stops().filter((t) => t < c).pop();
+        if (prev !== undefined) { setCursor(dayIdx(new Date(prev))); draw(); }
+      });
+      document.getElementById("nextPt").addEventListener("click", () => {
+        const c = +dateAt(state.cursor), next = stops().find((t) => t > c);
+        if (next !== undefined) { setCursor(dayIdx(new Date(next))); draw(); }
+      });
+      chartEl.addEventListener("dblclick", () => { setMode("global"); draw(); });
+      // Clic sur Poids réel / Objectif : le curseur saute de point en point (en boucle), échelle inchangée, point mis en évidence en vert
+      const loopTo = (list, sid) => {
+        const pts = list.map((p, i) => ({ t: +p.d, i })).sort((x, y) => x.t - y.t);
+        if (!pts.length) return;
+        const c = +dateAt(state.cursor);
+        const nxt = pts.find((p) => p.t > c) ?? pts[0];
+        setCursor(dayIdx(new Date(nxt.t)));
+        state.hover = null; state.pin = sid + nxt.i;
+        draw();
+      };
+      document.getElementById("cP").addEventListener("click", () => loopTo(P, "P"));
+      document.getElementById("cO").addEventListener("click", () => loopTo(O, "O"));
+      scale.addEventListener("input", () => { state.t = +scale.value; draw(); });
+      document.getElementById("modes").addEventListener("click", (e) => {
+        const b = e.target.closest("button[data-mode]");
+        if (b) { setMode(b.dataset.mode); draw(); }
+      });
+      document.getElementById("simChk").addEventListener("change", (e) => {
+        state.sim = e.currentTarget.checked;
+        draw();
+      });
+      draw();
+      const onResize = () => { if (document.getElementById("chart")) draw(); else window.removeEventListener("resize", onResize); };
+      window.addEventListener("resize", onResize);
     }
-  });
-  const endPtr = (e) => {
-    ptrs.delete(e.pointerId);
-    if (ptrs.size < 2) pinch = null;
-    if (ptrs.size === 0) { pan = null; setTimeout(() => { state.dragged = false; }, 0); }
-  };
-  chartEl.addEventListener("pointerup", endPtr);
-  chartEl.addEventListener("pointercancel", endPtr);
-  chartEl.addEventListener("mouseover", (e) => { const k = keyOf(e); if (k) { state.hover = k; refreshTip(); } });
-  chartEl.addEventListener("mouseout", (e) => { if (keyOf(e)) { state.hover = null; refreshTip(); } });
-  chartEl.addEventListener("click", (e) => {
-    const k = keyOf(e);
-    if (k) { state.pin = state.pin === k ? null : k; refreshTip(); }
-  });
-  showVals.addEventListener("change", () => { state.hover = null; state.pin = null; draw(); });
-  cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
-  document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
-  document.getElementById("prevPt").addEventListener("click", () => {
-    const c = +dateAt(state.cursor), prev = stops().filter((t) => t < c).pop();
-    if (prev !== undefined) { setCursor(dayIdx(new Date(prev))); draw(); }
-  });
-  document.getElementById("nextPt").addEventListener("click", () => {
-    const c = +dateAt(state.cursor), next = stops().find((t) => t > c);
-    if (next !== undefined) { setCursor(dayIdx(new Date(next))); draw(); }
-  });
-  scale.addEventListener("input", () => { state.t = +scale.value; draw(); });
-  document.getElementById("modes").addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-mode]");
-    if (b) { setMode(b.dataset.mode); draw(); }
-  });
-  document.getElementById("simBtn").addEventListener("click", (e) => {
-    state.sim = !state.sim;
-    e.currentTarget.setAttribute("aria-pressed", state.sim);
-    e.currentTarget.textContent = state.sim ? "Masquer la simulation" : "Simulation";
-    draw();
-  });
-  draw();
-  const onResize = () => { if (document.getElementById("chart")) draw(); else window.removeEventListener("resize", onResize); };
-  window.addEventListener("resize", onResize);
-}
 
-/* ============================================================
-   INFOS / MÉMO
-   ============================================================ */
-function viewInfos() {
-  const P = series(pesees);
-  let stats = `<p class="muted">Le bilan apparaîtra après votre première pesée.</p>`;
-  if (P.length) {
-    const a = P[0], z = P[P.length - 1];
-    const sem = (z.d - a.d) / DAY / 7;
-    const min = P.reduce((m, p) => (p.kg < m.kg ? p : m));
-    const next = nextObjective();
-    stats = `<dl class="stats">
+    /* ============================================================
+       INFOS / MÉMO
+       ============================================================ */
+    function viewInfos() {
+      const P = series(pesees);
+      let stats = `<p class="muted">Le bilan apparaîtra après votre première pesée.</p>`;
+      if (P.length) {
+        const a = P[0], z = P[P.length - 1];
+        const sem = (z.d - a.d) / DAY / 7;
+        const min = P.reduce((m, p) => (p.kg < m.kg ? p : m));
+        const next = nextObjective();
+        stats = `<dl class="stats">
       <dt>Première pesée</dt><dd>${fmtKg(a.kg)} kg le ${shortFr(a.d)}</dd>
       <dt>Dernière pesée</dt><dd>${fmtKg(z.kg)} kg le ${shortFr(z.d)}</dd>
       <dt>Évolution totale</dt><dd>${fmtDelta(z.kg - a.kg)} kg</dd>
@@ -992,8 +2041,8 @@ function viewInfos() {
       ${next ? `<dt>Prochain objectif</dt><dd>${fmtKg(next.kg)} kg le ${shortFr(next.d)}</dd>
                <dt>Reste à perdre</dt><dd>${fmtKg(Math.max(0, z.kg - next.kg))} kg</dd>` : ""}
     </dl>`;
-  }
-  app.innerHTML = `
+      }
+      app.innerHTML = `
     <h2>Notes personnelles</h2>
     <textarea id="memo" placeholder="Notes personnelles…" aria-label="Notes personnelles"></textarea>
     <p class="muted" id="memoState" style="font-size:.85rem">Les notes sont enregistrées automatiquement.</p>
@@ -1004,70 +2053,73 @@ function viewInfos() {
     <button class="btn" id="export">Exporter les données</button>
     <label class="btn file-btn">Importer un fichier (.json)<input type="file" id="import" accept=".json,application/json"></label>`;
 
-  const memo = document.getElementById("memo");
-  memo.value = localStorage.getItem(KEYS.memo) || "";
-  let t;
-  memo.addEventListener("input", () => {
-    clearTimeout(t);
-    t = setTimeout(() => { if (save(KEYS.memo, memo.value)) document.getElementById("memoState").textContent = "Notes enregistrées."; }, 400);
-  });
+      const memo = document.getElementById("memo");
+      memo.value = localStorage.getItem(KEYS.memo) || "";
+      let t;
+      memo.addEventListener("input", () => {
+        clearTimeout(t);
+        t = setTimeout(() => { if (save(KEYS.memo, memo.value)) document.getElementById("memoState").textContent = "Notes enregistrées."; }, 400);
+      });
 
-  document.getElementById("export").addEventListener("click", () => {
-    const data = { app: "courbe-de-poids", version: 1, exporte_le: new Date().toISOString(),
-      pesees, objectifs, memo: localStorage.getItem(KEYS.memo) || "" };
-    const blob = new Blob([JSON.stringify(data, null, 4)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `courbe-de-poids-${toISO(today())}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast("Données exportées");
-  });
+      document.getElementById("export").addEventListener("click", () => {
+        const data = {
+          app: "courbe-de-poids", version: 1, exporte_le: new Date().toISOString(),
+          pesees, objectifs, memo: localStorage.getItem(KEYS.memo) || ""
+        };
+        const blob = new Blob([JSON.stringify(data, null, 4)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `courbe-de-poids-${toISO(today())}.json`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast("Données exportées");
+      });
 
-  document.getElementById("import").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      const clean = (arr) => arr.filter((x) => x && parseKg(x.poids) !== null && parseAnyDate(x.date))
-        .map((x) => ({ poids: String(parseKg(x.poids)), date: String(x.date) }));
-      let addP = [], addO = [], newMemo = null;
-      if (Array.isArray(data)) {
-        // Anciens fichiers pesees.json / objectifs.json : on reconnaît le format des dates
-        const items = clean(data);
-        if (items.length && items.every((x) => /^\d{4}-\d{2}-\d{2}/.test(x.date))) addO = items;
-        else addP = items;
-      } else if (data && typeof data === "object") {
-        addP = Array.isArray(data.pesees) ? clean(data.pesees) : [];
-        addO = Array.isArray(data.objectifs) ? clean(data.objectifs) : [];
-        if (typeof data.memo === "string") newMemo = data.memo;
-      }
-      if (!addP.length && !addO.length && newMemo === null) throw new Error("vide");
+      document.getElementById("import").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+          const data = JSON.parse(await file.text());
+          const clean = (arr) => arr.filter((x) => x && parseKg(x.poids) !== null && parseAnyDate(x.date))
+            .map((x) => ({ poids: String(parseKg(x.poids)), date: String(x.date) }));
+          let addP = [], addO = [], newMemo = null;
+          if (Array.isArray(data)) {
+            // Anciens fichiers pesees.json / objectifs.json : on reconnaît le format des dates
+            const items = clean(data);
+            if (items.length && items.every((x) => /^\d{4}-\d{2}-\d{2}/.test(x.date))) addO = items;
+            else addP = items;
+          } else if (data && typeof data === "object") {
+            addP = Array.isArray(data.pesees) ? clean(data.pesees) : [];
+            addO = Array.isArray(data.objectifs) ? clean(data.objectifs) : [];
+            if (typeof data.memo === "string") newMemo = data.memo;
+          }
+          if (!addP.length && !addO.length && newMemo === null) throw new Error("vide");
 
-      const msg = [addP.length && `${addP.length} pesée(s)`, addO.length && `${addO.length} objectif(s)`].filter(Boolean).join(" et ");
-      if (!(await confirmAsk(`Importer ${msg || "les notes"} ? Les doublons (même date et même poids) seront ignorés.`, "Importer"))) return;
+          const msg = [addP.length && `${addP.length} pesée(s)`, addO.length && `${addO.length} objectif(s)`].filter(Boolean).join(" et ");
+          if (!(await confirmAsk(`Importer ${msg || "les notes"} ? Les doublons (même date et même poids) seront ignorés.`, "Importer"))) return;
 
-      const key = (x) => `${toISO(parseAnyDate(x.date))}|${parseKg(x.poids)}`;
-      const merge = (target, add) => { const seen = new Set(target.map(key)); add.forEach((x) => { if (!seen.has(key(x))) { target.push(x); seen.add(key(x)); } }); };
-      merge(pesees, addP); merge(objectifs, addO);
-      savePesees(); saveObjectifs();
-      if (newMemo !== null && newMemo.trim() && !memo.value.trim()) save(KEYS.memo, newMemo);
-      render();
-      toast("Import terminé");
-    } catch (err) {
-      toast("Ce fichier n’est pas reconnu : choisissez un export de l’application, pesees.json ou objectifs.json.");
+          const key = (x) => `${toISO(parseAnyDate(x.date))}|${parseKg(x.poids)}`;
+          const merge = (target, add) => { const seen = new Set(target.map(key)); add.forEach((x) => { if (!seen.has(key(x))) { target.push(x); seen.add(key(x)); } }); };
+          merge(pesees, addP); merge(objectifs, addO);
+          savePesees(); saveObjectifs();
+          if (newMemo !== null && newMemo.trim() && !memo.value.trim()) save(KEYS.memo, newMemo);
+          render();
+          toast("Import terminé");
+        } catch (err) {
+          toast("Ce fichier n’est pas reconnu : choisissez un export de l’application, pesees.json ou objectifs.json.");
+        }
+      });
     }
-  });
-}
 
-/* ============================================================
-   Démarrage
-   ============================================================ */
-render();
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Service worker :", e)));
-}
-</script>
+    /* ============================================================
+       Démarrage
+       ============================================================ */
+    render();
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch((e) => console.warn("Service worker :", e)));
+    }
+  </script>
 </body>
+
 </html>
