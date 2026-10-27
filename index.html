@@ -1710,6 +1710,11 @@
       function windowRange() {
         const { tr, simEnd } = simInfo();
         const tEnd = new Date(Math.max(+lastAll, +today(), simEnd ? +simEnd : 0));
+        if (state.zoomReal && P.length > 1) {
+          // La fenêtre s'élargit si le curseur sort de la période des pesées (flèches vers un objectif)
+          const c = +dateAt(state.cursor);
+          return { start: new Date(Math.min(+P[0].d, c)), end: new Date(Math.max(+P[P.length - 1].d, c)), tr, simEnd, tMax: tEnd };
+        }
         const len = lenDays() * DAY;
         // Centre : cursor-centré ; en mode auto, Année et Global partent de leur vue par défaut
         // puis tendent vers le curseur à mesure que l'échelle s'éloigne du milieu du slider
@@ -1743,15 +1748,26 @@
 
       function setCursor(n) { state.cursor = n; state.auto = false; }
       function setMode(m) {
-        state.mode = m; state.t = 500; state.auto = true;
+        state.mode = m; state.t = 500; state.auto = true; state.zoomReal = false;
         state.cursor = Math.max(0, dayIdx(today()));
         scale.value = state.t;
       }
 
       // Points parcourus par les flèches : pesées, puis objectifs au-delà
       function stops() {
-        const lastP = P.length ? P[P.length - 1].d : -Infinity;
-        return [...new Set([...P.map((p) => +p.d), ...O.filter((p) => p.d > lastP).map((p) => +p.d)])].sort((a, b) => a - b);
+        return [...P.map((p, i) => ({ t: +p.d, key: "P" + i, o: 0 })), ...O.map((p, i) => ({ t: +p.d, key: "O" + i, o: 1 }))]
+          .sort((a, b) => a.t - b.t || a.o - b.o);
+      }
+      function goStop(dir) {
+        const L = stops(), c = +dateAt(state.cursor);
+        const i = L.findIndex((s) => s.key === state.pin && s.t === c);
+        const s = dir > 0
+          ? (i >= 0 ? L[i + 1] : L.find((s) => s.t > c))
+          : (i >= 0 ? L[i - 1] : L.filter((s) => s.t < c).pop());
+        if (!s) return;
+        setCursor(dayIdx(new Date(s.t)));
+        state.hover = null; state.pin = s.key;
+        draw();
       }
 
       state.cursor = Math.max(0, dayIdx(today()));
@@ -1852,7 +1868,7 @@
         cur.value = state.cursor;
         document.getElementById("values").hidden = !showVals.checked;
         document.getElementById("curOut").textContent = formatFr(cd);
-        document.getElementById("scaleOut").textContent = fmtLen(lenDays());
+        document.getElementById("scaleOut").textContent = fmtLen(state.zoomReal && P.length > 1 ? (end - start) / DAY : lenDays());
         document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
         document.getElementById("vP").textContent = vShow === null ? "--" : `${fmtKg(vShow)} kg`;
         document.getElementById("vO").textContent = vo === null ? "--" : `${fmtKg(vo)} kg`;
@@ -1958,7 +1974,7 @@
         if (pinch && ptrs.size >= 2) {
           state.dragged = true;
           const t = tFromLen(pinch.len0 * pinch.d0 / pinchDist());
-          if (t !== state.t) { state.t = t; scale.value = t; draw(); }
+          if (t !== state.t) { state.t = t; state.zoomReal = false; scale.value = t; draw(); }
         } else if (pan && e.pointerId === pan.id) {
           const dx = e.clientX - pan.x0;
           if (!pan.moved && Math.abs(dx) < 6) return;
@@ -1985,15 +2001,15 @@
       showVals.addEventListener("change", () => { state.hover = null; state.pin = null; draw(); });
       cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
       document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
-      document.getElementById("prevPt").addEventListener("click", () => {
-        const c = +dateAt(state.cursor), prev = stops().filter((t) => t < c).pop();
-        if (prev !== undefined) { setCursor(dayIdx(new Date(prev))); draw(); }
+      document.getElementById("prevPt").addEventListener("click", () => goStop(-1));
+      document.getElementById("nextPt").addEventListener("click", () => goStop(1));
+      // Double clic : Global, puis zoom sur la période des pesées, puis retour à Global
+      chartEl.addEventListener("dblclick", () => {
+        const isGlobal = state.mode === "global" && state.auto && state.t === 500 && !state.zoomReal;
+        if (isGlobal && P.length > 1) state.zoomReal = true;
+        else setMode("global");
+        draw();
       });
-      document.getElementById("nextPt").addEventListener("click", () => {
-        const c = +dateAt(state.cursor), next = stops().find((t) => t > c);
-        if (next !== undefined) { setCursor(dayIdx(new Date(next))); draw(); }
-      });
-      chartEl.addEventListener("dblclick", () => { setMode("global"); draw(); });
       // Clic sur Poids réel / Objectif : le curseur saute de point en point (en boucle), échelle inchangée, point mis en évidence en vert
       const loopTo = (list, sid) => {
         const pts = list.map((p, i) => ({ t: +p.d, i })).sort((x, y) => x.t - y.t);
@@ -2006,7 +2022,7 @@
       };
       document.getElementById("cP").addEventListener("click", () => loopTo(P, "P"));
       document.getElementById("cO").addEventListener("click", () => loopTo(O, "O"));
-      scale.addEventListener("input", () => { state.t = +scale.value; draw(); });
+      scale.addEventListener("input", () => { state.t = +scale.value; state.zoomReal = false; draw(); });
       document.getElementById("modes").addEventListener("click", (e) => {
         const b = e.target.closest("button[data-mode]");
         if (b) { setMode(b.dataset.mode); draw(); }
