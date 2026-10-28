@@ -905,6 +905,67 @@
       opacity: .8;
     }
 
+    /* Mode démo : fond violet clair sur toutes les pages, fondu en 400 ms */
+    body,
+    body::before,
+    .bar {
+      transition: background-color 400ms;
+    }
+
+    html.demo {
+      --bg: #efe1f7;
+    }
+
+    html.cut body,
+    html.cut body::before,
+    html.cut .bar {
+      transition: none;
+    }
+
+    .demo-tag {
+      position: fixed;
+      left: 50%;
+      translate: -50% 0;
+      bottom: calc(max(8px, env(safe-area-inset-bottom, 0px)) + 4.2rem);
+      z-index: 1;
+      margin: 0;
+      padding: 4px 0;
+      border: 0;
+      background: none;
+      color: #8a62a1;
+      font-size: .73rem;
+      font-weight: 700;
+      cursor: pointer;
+      transform-origin: 0 0;
+    }
+
+    .demo-zone {
+      margin-top: 28px;
+      text-align: center;
+    }
+
+    html.demo .demo-zone .demo-tag {
+      position: static;
+      translate: none;
+      padding: 0;
+      font-size: 2rem;
+      font-weight: 650;
+      cursor: default;
+    }
+
+    .demo-back {
+      display: block;
+      width: fit-content;
+      margin: 10px auto 0;
+      padding: 4px 12px;
+      border: 1px solid #8a62a1;
+      border-radius: 999px;
+      background: transparent;
+      color: #8a62a1;
+      font-size: .8rem;
+      cursor: pointer;
+    }
+
     .maj {
       position: fixed;
       left: 0;
@@ -1406,6 +1467,31 @@
       }
     }
 
+    // Mode démo : les données de démonstration vivent sous d'autres clés et sont effacées à la sortie
+    // (ou au chargement de la page), de sorte que les vraies données ne sont jamais touchées.
+    const REAL_KEYS = { ...KEYS };
+    const DEMO_KEYS = { pesees: "cdp.demo.pesees", objectifs: "cdp.demo.objectifs", memo: "cdp.demo.memo", undo: "cdp.demo.undo" };
+    const DEMO_DATA = {
+      pesees: [
+        { poids: "98", date: "mardi 15/09/2026" }, { poids: "98.8", date: "lundi 21/09/2026" },
+        { poids: "97.3", date: "mercredi 23/09/2026" }, { poids: "97.2", date: "lundi 28/09/2026" },
+        { poids: "96.9", date: "mercredi 30/09/2026" }, { poids: "96.2", date: "mercredi 07/10/2026" },
+        { poids: "96.7", date: "samedi 10/10/2026" }, { poids: "96.4", date: "lundi 12/10/2026" },
+        { poids: "95.9", date: "mardi 13/10/2026" }, { poids: "95.2", date: "mercredi 14/10/2026" },
+        { poids: "96.1", date: "mardi 20/10/2026" }, { poids: "95.6", date: "lundi 26/10/2026" }
+      ],
+      objectifs: [
+        { poids: "95", date: "2026-11-01" }, { poids: "94", date: "2026-12-01" },
+        { poids: "93", date: "2027-01-01" }, { poids: "92", date: "2027-02-01" },
+        { poids: "89", date: "2027-04-01" }, { poids: "98", date: "2026-09-15" },
+        { poids: "96.5", date: "2026-10-10" }
+      ],
+      memo: ""
+    };
+    let demoActive = false;
+    const clearDemoKeys = () => { try { Object.values(DEMO_KEYS).forEach((k) => localStorage.removeItem(k)); } catch (_) { } };
+    clearDemoKeys();
+
     let pesees = loadList(KEYS.pesees);
     let objectifs = loadList(KEYS.objectifs);
     const savePesees = () => save(KEYS.pesees, pesees);
@@ -1852,9 +1938,51 @@
       <button data-go="objectif" class="m-obj"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--objectif)"><circle cx="14" cy="4.5" r="2" fill="var(--objectif)" stroke="none"/><path d="M13 7.5L11.5 13"/><path d="M13 8.5l3.5 1 1-3"/><path d="M12.8 8.5L9.5 9l-1 3"/><path d="M11.5 13l3 4-2 4"/><path d="M11.5 13L8 16l-3.5-1.5"/><path d="M2 6h3M1 9h2.5" stroke-width="1.1" opacity=".6"/></svg><strong>Objectif</strong><span>Fixer un poids à atteindre</span></button>
       <button data-go="infos" class="small-info"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--muted)"><path d="M12 6C10 4.8 6.5 4.5 3 5.2v13c3.5-.7 7-.4 9 .8 2-1.2 5.5-1.5 9-.8v-13C17.5 4.5 14 4.8 12 6z"/><path d="M12 6v13"/></svg><strong>Infos / Mémo</strong><span>Notes, bilan, sauvegarde</span></button>
     </nav>
+    <div class="demo-zone">
+      <button type="button" class="demo-tag" id="demoTag"${demoActive ? " disabled>Mode Démo" : ">activer le Mode Démo"}</button>
+      ${demoActive ? `<button type="button" class="demo-back" id="demoBack">revenir</button>` : ""}
+    </div>
     <p class="credit">Conception : Sébastien Dumont / contact <a href="mailto:pixelsenscene94@gmail.com" style="color:inherit">pixelsenscene94@gmail.com</a></p>
         <p class="maj" id="maj" hidden></p>`;
+      document.getElementById("demoTag").addEventListener("click", enterDemo);
+      const back = document.getElementById("demoBack");
+      if (back) back.addEventListener("click", exitDemo);
       showUpdate();
+    }
+
+    // Entrée : le texte grandit et se centre sous les boutons en 400 ms (même durée que le fond)
+    function enterDemo() {
+      if (demoActive) return;
+      const from = document.getElementById("demoTag").getBoundingClientRect();
+      Object.assign(KEYS, DEMO_KEYS);
+      const d = JSON.parse(JSON.stringify(DEMO_DATA));
+      pesees = d.pesees; objectifs = d.objectifs;
+      savePesees(); saveObjectifs(); save(KEYS.memo, d.memo);
+      demoActive = true;
+      document.documentElement.classList.add("demo");
+      render();
+      const tag = document.getElementById("demoTag");
+      const to = tag.getBoundingClientRect();
+      tag.animate([
+        { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px) scale(${from.height / to.height})` },
+        { transform: "none" }
+      ], { duration: 400, easing: "ease-out" });
+    }
+
+    // Sortie : retour immédiat aux données d'avant, les données de démo sont supprimées
+    function exitDemo() {
+      if (!demoActive) return;
+      demoActive = false;
+      clearDemoKeys();
+      Object.assign(KEYS, REAL_KEYS);
+      pesees = loadList(KEYS.pesees);
+      objectifs = loadList(KEYS.objectifs);
+      const root = document.documentElement;
+      root.classList.add("cut");
+      root.classList.remove("demo");
+      render();
+      void root.offsetHeight;
+      root.classList.remove("cut");
     }
 
     // Date de la dernière mise à jour : dernier commit du dépôt GitHub (valeur gardée pour le mode hors ligne)
