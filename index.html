@@ -2640,7 +2640,30 @@
       <button class="btn danger" id="wipeSelected" disabled>Effacer la sélection</button>
       <button class="btn" id="wipeClose">Fermer</button>
     </dialog>
-    <p class="muted" style="font-size:.7rem;text-align:center;margin-top:2rem;opacity:.7">Conception : Sébastien Dumont / contact <a href="mailto:pixelsenscene94@gmail.com" style="color:inherit">pixelsenscene94@gmail.com</a></p>`;
+    <p class="muted" style="font-size:.7rem;text-align:center;margin-top:2rem;opacity:.7"><button type="button" class="linkbtn" id="about" style="text-decoration:underline">À savoir</button></p>
+    <dialog class="wipe about" id="aboutDlg" aria-label="À savoir" style="font-size:.7rem;line-height:1.45;color:var(--muted);cursor:pointer">
+<div style="white-space:pre-line"><b>Vos données sont stockées localement</b>. Elles restent sur votre appareil, dans votre navigateur.
+L’application ne nécessite pas de compte et aucune synchronisation n’est faite.
+Vous perdez vos données si vous les videz de votre navigateur, désinstallez l’appli ou changez d’appareil.
+
+Si vous changez d’appareil,
+vous pouvez exporter les données dans le menu info/mémo en vue de les importer sur un autre appareil.
+
+L’appli est hébergée sur le site de confiance « https://github.com/ ».
+L’appli demande à GitHub la date de la dernière mise à jour : GitHub voit alors l’adresse IP de l’appareil, mais aucune donnée de poids n’est envoyée.
+
+Utilisez un navigateur à jour, avec la date et l’heure de l’appareil exactes,
+sinon le navigateur peut afficher « Votre connexion n’est pas privée ».
+
+Une connexion est nécessaire à la première ouverture. Ensuite l’appli fonctionne hors ligne.
+L’appli est susceptible d’être mise à jour régulièrement.
+Pour qu’une mise à jour soit effective, fermez puis rouvrez l’appli.
+
+Cette appli sert à suivre un poids, pas à donner un avis médical : la simulation proposée est une simple projection à partir des données enregistrées. Pour un régime ou un problème de santé, consultez un professionnel.
+
+Le lien de l’application est https://sebsebd.github.io/Courbe.de.poids/</div>
+    </dialog>
+    <p class="muted" style="font-size:.7rem;text-align:center;margin-top:.8rem;opacity:.7">Conception : Sébastien Dumont / contact <a href="mailto:pixelsenscene94@gmail.com" style="color:inherit">pixelsenscene94@gmail.com</a></p>`;
 
       const memo = document.getElementById("memo");
       memo.value = localStorage.getItem(KEYS.memo) || "";
@@ -2649,6 +2672,11 @@
         clearTimeout(t);
         t = setTimeout(() => { if (save(KEYS.memo, memo.value)) document.getElementById("memoState").textContent = "Notes enregistrées."; }, 400);
       });
+
+      // « À savoir » : fenêtre centrée, un clic n'importe où la ferme
+      const aboutDlg = document.getElementById("aboutDlg");
+      document.getElementById("about").addEventListener("click", () => aboutDlg.showModal());
+      aboutDlg.addEventListener("click", () => aboutDlg.close());
 
       // Effacement des données actuelles : remise à zéro, ou sélection pesées / objectifs / notes
       const wipePanel = document.getElementById("wipePanel"), wipeBtn = document.getElementById("wipe");

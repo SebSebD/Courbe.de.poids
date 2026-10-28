@@ -1,6 +1,6 @@
 // Service worker : met l'application en cache pour qu'elle fonctionne hors ligne.
 // Pensez à changer VERSION à chaque mise à jour des fichiers pour forcer le rafraîchissement.
-const VERSION = "cdp-v37";
+const VERSION = "cdp-v40";
 const ASSETS = [
   "./",
   "./index.html",
