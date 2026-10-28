@@ -233,6 +233,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      container-type: inline-size;
     }
 
     .menu button {
@@ -283,6 +284,7 @@
       width: 100%;
       min-width: 0;
       aspect-ratio: 1;
+      height: calc((100cqw - 12px) / 2);
       align-self: start;
     }
 
@@ -394,6 +396,12 @@
       padding: 0;
     }
 
+    .kg input::placeholder {
+      color: var(--ink);
+      -webkit-text-fill-color: var(--ink);
+      opacity: 0.1;
+    }
+
     .kg span {
       font-size: 1.2rem;
       color: var(--muted);
@@ -424,6 +432,11 @@
     .datepick .val {
       font-weight: 600;
       font-size: 1.05rem;
+    }
+
+    /* Le champ de date natif ne sert plus qu'à stocker la valeur : le calendrier est celui de la fenêtre de saisie */
+    .datepick input[type=date] {
+      pointer-events: none;
     }
 
     .datepick input {
@@ -458,6 +471,90 @@
 
     .wheel-pop.wide {
       width: min(320px, 92vw);
+    }
+
+    .wheel-pop.dual {
+      width: min(520px, 94vw);
+    }
+
+    .dual-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .dual-row .wheel-box {
+      flex: 0 0 170px;
+      margin-bottom: 0;
+    }
+
+    .cal {
+      flex: 1 1 230px;
+      min-width: 0;
+    }
+
+    .cal button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .cal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      text-transform: capitalize;
+    }
+
+    .cal-head .cn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+
+    .cal-week,
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+    }
+
+    .cal-week span {
+      font-size: 0.72rem;
+      color: var(--muted);
+      padding: 2px 0;
+    }
+
+    .cal-grid .cd {
+      height: 30px;
+      border-radius: 50%;
+      font-size: 0.9rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .cal-grid .cd.out {
+      color: var(--muted);
+      opacity: 0.55;
+    }
+
+    .cal-grid .cd.now {
+      box-shadow: inset 0 0 0 1.5px var(--muted);
+    }
+
+    .cal-grid .cd.sel {
+      background: var(--poids);
+      color: var(--on-accent);
+      font-weight: 700;
+      opacity: 1;
     }
 
     .wheel-cols {
@@ -504,6 +601,119 @@
     }
 
     .btn+.btn {
+      margin-top: 10px;
+    }
+
+    dialog.wipe {
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    dialog.wipe::backdrop {
+      background: rgb(0 0 0 / 0.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    dialog.wipe h3 {
+      margin: 0 0 14px;
+      text-align: center;
+    }
+
+    dialog.wipe p {
+      margin: 0;
+      font-weight: 400;
+    }
+
+    .wipe .or {
+      margin: 14px 0 6px !important;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .wipe .opt {
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .wipe .opt .check {
+      font-size: 1rem;
+    }
+
+    .wipe .opt .check input {
+      accent-color: var(--danger);
+    }
+
+    .wipe .opt.all {
+      border-top: 0;
+      border-bottom: 2px solid var(--line);
+    }
+
+    .wipe .hint {
+      margin: 2px 0 0 26px !important;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .wipe .hint button {
+      all: unset;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .wipe .btn {
+      display: block;
+      width: fit-content;
+      margin: 12px auto 0;
+      padding: 12px 22px;
+    }
+
+    .wipe .reset-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      column-gap: 10px;
+    }
+
+    .wipe .reset-row .btn {
+      grid-column: 2;
+      margin: 0;
+    }
+
+    .wipe .undo {
+      grid-column: 3;
+      justify-self: start;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .wipe .undo:disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+
+    .wipe .undo svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .wipe .btn small {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .wipe .btn+.btn {
       margin-top: 10px;
     }
 
@@ -618,7 +828,7 @@
       align-items: center;
     }
 
-    .legend .check {
+    .legend .check:first-child {
       margin-left: auto;
     }
 
@@ -681,6 +891,18 @@
       border-radius: 10px;
       font-size: 1.1rem;
       cursor: pointer;
+    }
+
+    .credit {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: calc(max(8px, env(safe-area-inset-bottom, 0px)) + 1.3rem);
+      margin: 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: .72rem;
+      opacity: .8;
     }
 
     .maj {
@@ -1160,7 +1382,7 @@
     /* ============================================================
        Stockage (remplace pesees.json / objectifs.json)
        ============================================================ */
-    const KEYS = { pesees: "cdp.pesees", objectifs: "cdp.objectifs", memo: "cdp.memo" };
+    const KEYS = { pesees: "cdp.pesees", objectifs: "cdp.objectifs", memo: "cdp.memo", undo: "cdp.undo" };
 
     function loadList(key) {
       try {
@@ -1279,6 +1501,8 @@
 
     // Roulette : un appui d'une seconde sur le champ de poids l'ouvre ; la saisie manuelle reste possible
     let wheelBusyUntil = 0;
+    // Calendrier natif ouvert / saisie en cours : le clic qui les referme ne doit pas ramener au graphique
+    const fill = { calOpen: false, ignoreClick: false, graceUntil: 0 };
     function attachWheel(input, getStart, getLast) {
       const H = 36, MIN = 20, MAX = 400, fmt1 = (v) => v.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       let timer = null, x0 = 0, y0 = 0, armed = false, held = false;
@@ -1397,25 +1621,27 @@
 
       // Appui sur la zone : calendrier / saisie manuelle / roulette
       const cancel = () => { clearTimeout(timer); timer = null; };
-      input.addEventListener("pointerdown", (e) => {
+      root.addEventListener("pointerdown", (e) => {
+        if (e.target === man) return;
         x0 = e.clientX; y0 = e.clientY; wheelShown = false;
         cancel(); timer = setTimeout(() => { timer = null; wheelShown = true; openWheel(); }, 1000);
         if (armed) e.preventDefault();
       });
-      input.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel(); });
-      input.addEventListener("pointercancel", cancel);
-      input.addEventListener("pointerleave", cancel);
-      input.addEventListener("pointerup", () => {
+      root.addEventListener("pointermove", (e) => { if (timer && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) cancel(); });
+      root.addEventListener("pointercancel", cancel);
+      root.addEventListener("pointerleave", cancel);
+      root.addEventListener("pointerup", (e) => {
+        if (e.target === man) return;
         const quick = !!timer;
         cancel();
         if (quick && armed && !wheelShown) enterManual();
       });
-      input.addEventListener("click", (e) => {
+      root.addEventListener("click", (e) => {
+        if (e.target === man) return;
         if (wheelShown || manualShown || Date.now() < wheelBusyUntil) { e.preventDefault(); return; }
-        armed = true;
-        try { input.showPicker && input.showPicker(); } catch (_) { }
+        openWheel();
       });
-      input.addEventListener("contextmenu", (e) => { if (timer || wheelShown) e.preventDefault(); });
+      root.addEventListener("contextmenu", (e) => { if (timer || wheelShown) e.preventDefault(); });
       // 3e clic : pendant la saisie manuelle, un clic sur la zone (hors du champ de saisie) ouvre la roulette
       let downManual = false;
       root.addEventListener("pointerdown", (e) => { downManual = manualShown && e.target !== man; }, true);
@@ -1438,8 +1664,8 @@
         for (let i = 0; i < NY; i++) yI += `<div class="it int">${Y0 + i}</div>`;
         const back = document.createElement("div");
         back.className = "wheel-back";
-        back.innerHTML = `<div class="wheel-pop wide" role="dialog" aria-label="Choisir la date">
-      <div class="wheel-box wheel-cols">${col("")}${col("")}${col(yI)}</div>
+        back.innerHTML = `<div class="wheel-pop wide dual" role="dialog" aria-label="Choisir la date">
+      <div class="dual-row"><div class="wheel-box wheel-cols">${col("")}${col("")}${col(yI)}</div><div class="cal"></div></div>
       <button type="button" class="btn primary">OK</button></div>`;
         document.body.appendChild(back);
         const [wd, wm, wy] = back.querySelectorAll(".wheel");
@@ -1462,12 +1688,32 @@
           wm.innerHTML = `<div class="pad"></div>${h}<div class="pad"></div>`;
           setCol(wm, mIdx(v));
         };
+        // Calendrier (à droite), synchronisé avec la roulette
+        const cal = back.querySelector(".cal"), sameDay = (a, b) => toISO(a) === toISO(b);
+        let cm = new Date(cur.getFullYear(), cur.getMonth(), 1);
+        const renderCal = () => {
+          const y = cm.getFullYear(), m = cm.getMonth(), off = (new Date(y, m, 1).getDay() + 6) % 7, t = today();
+          let cells = "";
+          for (let i = 0; i < 42; i++) {
+            const d = new Date(y, m, 1 - off + i);
+            cells += `<button type="button" class="cd${d.getMonth() !== m ? " out" : ""}${sameDay(d, cur) ? " sel" : ""}${sameDay(d, t) ? " now" : ""}" data-t="${+d}">${d.getDate()}</button>`;
+          }
+          cal.innerHTML = `<div class="cal-head"><button type="button" class="cn" data-n="-1" aria-label="Mois précédent">‹</button><strong>${MOIS_LONGS[m]} ${y}</strong><button type="button" class="cn" data-n="1" aria-label="Mois suivant">›</button></div>
+            <div class="cal-week">${["L", "M", "M", "J", "V", "S", "D"].map((l) => `<span>${l}</span>`).join("")}</div><div class="cal-grid">${cells}</div>`;
+        };
+        cal.addEventListener("click", (e) => {
+          const n = e.target.closest("[data-n]");
+          if (n) { cm = new Date(cm.getFullYear(), cm.getMonth() + +n.dataset.n, 1); renderCal(); return; }
+          const c = e.target.closest("[data-t]");
+          if (c) apply(new Date(+c.dataset.t), null);
+        });
         const apply = (nv, from) => {
           v = nv; cur = real(v);
           if (from !== wd) { const i = dIdx(v); if (i < 0 || i >= DN) buildDays(); else setCol(wd, i); }
           if (from !== wm) { const i = mIdx(v); if (i < 0 || i >= MN) buildMonths(); else setCol(wm, i); }
           if (from !== wy) setCol(wy, cur.getFullYear() - Y0);
           input.value = toISO(cur); val.textContent = fmtLong(cur);
+          cm = new Date(cur.getFullYear(), cur.getMonth(), 1); renderCal();
           onChange && onChange(cur);
         };
         let idle = null;
@@ -1507,13 +1753,20 @@
           const it = e.target.closest(".it");
           if (it) el.scrollTo({ top: [...el.querySelectorAll(".it")].indexOf(it) * H, behavior: "smooth" });
         }));
-        buildDays(); buildMonths(); setCol(wy, v.getFullYear() - Y0);
+        buildDays(); buildMonths(); setCol(wy, v.getFullYear() - Y0); renderCal();
         const close = (ok) => {
           clearTimeout(idle); back.remove(); wheelBusyUntil = Date.now() + 600; wheelShown = false;
+          armed = true; // un clic de plus sur la zone ouvre la saisie manuelle JJ/MM/AAAA
           if (!ok) setDate(today());
         };
-        back.querySelector("button").addEventListener("click", () => close(true));
-        back.addEventListener("click", (e) => { if (e.target === back && Date.now() > wheelBusyUntil) close(false); });
+        back.querySelector(".btn.primary").addEventListener("click", () => close(true));
+        back.addEventListener("click", (e) => {
+          if (e.target !== back || Date.now() <= wheelBusyUntil) return;
+          // Un clic sur la zone de date (derrière la fenêtre) la referme en gardant la date et passe directement à la saisie JJ/MM/AAAA
+          const r = root.getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { close(true); enterManual(); }
+          else close(false);
+        });
       }
       return () => fromISO(input.value);
     }
@@ -1558,9 +1811,16 @@
     });
     // Sur les pages de saisie et les tableaux, un clic hors zone de saisie ou zone cliquable revient à la page précédente
     const BACK_VIEWS = ["pesee", "pesees", "objectif", "objectifs", "infos"];
+    document.addEventListener("pointerdown", () => {
+      const a = document.activeElement;
+      fill.ignoreClick = fill.calOpen || !!(a && a.matches("input, textarea"));
+    }, true);
     document.addEventListener("click", (e) => {
       if (!BACK_VIEWS.includes(location.hash.replace(/^#/, ""))) return;
       if (e.target.closest("button, a, input, textarea, select, label, dialog, header, .bar, .entry, .datepick, #toast")) return;
+      const skip = fill.ignoreClick || fill.calOpen || Date.now() < fill.graceUntil;
+      fill.ignoreClick = false; fill.calOpen = false;
+      if (skip) return;
       if (String(window.getSelection()) || Date.now() < wheelBusyUntil || document.querySelector(".wheel-back")) return;
       if (navRank > 0) history.back(); else go("");
     });
@@ -1592,7 +1852,8 @@
       <button data-go="objectif" class="m-obj"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--objectif)"><circle cx="14" cy="4.5" r="2" fill="var(--objectif)" stroke="none"/><path d="M13 7.5L11.5 13"/><path d="M13 8.5l3.5 1 1-3"/><path d="M12.8 8.5L9.5 9l-1 3"/><path d="M11.5 13l3 4-2 4"/><path d="M11.5 13L8 16l-3.5-1.5"/><path d="M2 6h3M1 9h2.5" stroke-width="1.1" opacity=".6"/></svg><strong>Objectif</strong><span>Fixer un poids à atteindre</span></button>
       <button data-go="infos" class="small-info"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" stroke="var(--muted)"><path d="M12 6C10 4.8 6.5 4.5 3 5.2v13c3.5-.7 7-.4 9 .8 2-1.2 5.5-1.5 9-.8v-13C17.5 4.5 14 4.8 12 6z"/><path d="M12 6v13"/></svg><strong>Infos / Mémo</strong><span>Notes, bilan, sauvegarde</span></button>
     </nav>
-    <p class="maj" id="maj" hidden></p>`;
+    <p class="credit">Conception : Sébastien Dumont / contact <a href="mailto:pixelsenscene94@gmail.com" style="color:inherit">pixelsenscene94@gmail.com</a></p>
+        <p class="maj" id="maj" hidden></p>`;
       showUpdate();
     }
 
@@ -1603,7 +1864,7 @@
       const show = (iso) => {
         const d = new Date(iso);
         if (!el || isNaN(d)) return;
-        el.textContent = `Dernière mise à jour : ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} à ${pad(d.getHours())}h${pad(d.getMinutes())}`;
+        el.textContent = `Dernière mise à jour de l’application : ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} à ${pad(d.getHours())}h${pad(d.getMinutes())}`;
         el.hidden = false;
       };
       try { const c = localStorage.getItem(KEY); if (c) show(c); } catch (_) { }
@@ -1774,14 +2035,23 @@
     }
 
     function viewGraphique() {
-      const P = series(pesees), O = series(objectifs);
-      if (!P.length && !O.length) {
+      const P = series(pesees), O0 = series(objectifs);
+      if (!P.length && !O0.length) {
         app.innerHTML = `<p class="empty muted">Aucune donnée pour afficher le graphique. Entrez au moins une pesée.</p>
       <button class="btn primary" data-go="pesee">Entrer une pesée</button>`;
         return;
       }
       const state = { mode: "global", t: 500, auto: true, cursor: 0, sim: true, last: false };
-      const allDates = [...P, ...O].map((p) => p.d);
+      // Objectif par défaut : point de départ le jour de la 1re pesée (poids initial) ;
+      // sans aucun objectif saisi, ligne droite au poids initial jusqu'à aujourd'hui
+      const O = O0.slice();
+      if (P.length && !(O.length && O[0].d <= P[0].d)) {
+        O.unshift({ idx: -1, d: P[0].d, kg: P[0].kg });
+        // Aucun objectif saisi : le 2e point suit le bord droit de la fenêtre (ajusté dans draw)
+        if (O.length === 1) O.push({ idx: -1, d: new Date(+P[0].d + DAY), kg: P[0].kg });
+      }
+      const flatDefault = !O0.length && O.length === 2;
+      const allDates = [...P, ...O0].map((p) => p.d);
       const first = new Date(Math.min(...allDates)), lastAll = new Date(Math.max(...allDates));
 
       app.innerHTML = `
@@ -1802,9 +2072,10 @@
       </div>
       <div class="chart-box">
         <div class="checks">
+          <label class="check"><input type="checkbox" id="snapChk"> Curseur aimanté</label>
           <label class="check"><input type="checkbox" id="showVals"> Affichage données</label>
           <label class="check chk-p"><input type="checkbox" id="pesChk" checked> Pesée</label>
-          <label class="check chk-o"><input type="checkbox" id="objChk" checked> Objectif</label>
+          <label class="check chk-o"><input type="checkbox" id="objChk" ${O0.length ? "checked" : ""}> Objectif</label>
           <label class="check"><input type="checkbox" id="simChk" checked> Simulation</label>
         </div>
         <div class="chart-wrap" id="chart"></div>
@@ -1843,7 +2114,7 @@
         let simEnd = null;
         if (tr) {
           const lastP = P[P.length - 1].d;
-          const lastO = O.length ? O[O.length - 1].d : null;
+          const lastO = O0.length ? O0[O0.length - 1].d : null;
           simEnd = lastO && lastO > lastP ? lastO : new Date(+lastP + 30 * DAY);
         }
         return { tr, simEnd };
@@ -1949,6 +2220,7 @@
 
       function draw() {
         const { start, end, tr, simEnd, tMax } = windowRange();
+        if (flatDefault) O[1].d = new Date(Math.max(+end, +O[0].d + DAY));
         cur.max = Math.max(1, dayIdx(tMax));
         state.cursor = Math.min(state.cursor, +cur.max);
         const box = document.getElementById("chart");
@@ -2017,22 +2289,20 @@
       <defs><clipPath id="clip"><rect x="${L - 6}" y="${T - 6}" width="${W - L - R + 12}" height="${H - T - B + 12}"/></clipPath></defs>
       ${g}
       <g clip-path="url(#clip)">
-        ${showO ? line(O, "var(--objectif)", "7 6") + dots(O, "var(--objectif)", true, "O") : ""}
+        ${showO ? line(O, "var(--objectif)", "7 6") + dots(flatDefault ? O.slice(0, 1) : O, "var(--objectif)", true, "O") : ""}
         ${line(simPts, "var(--sim)", "3 5")}
         ${showP ? line(P, "var(--poids)") + dots(P, "var(--poids)", false, "P") : ""}
         <line x1="${cx}" x2="${cx}" y1="${T}" y2="${H - B}" stroke="var(--ink)" stroke-width="1.5" opacity=".55"/>
       </g>
     </svg>
-    <div class="legend"><span><i style="border-color:var(--poids)"></i>Poids réel</span>
-      <span><i style="border-color:var(--objectif);border-top-style:dashed"></i>Objectif</span>
-      ${tr ? `<span><i style="border-color:var(--sim);border-top-style:dotted"></i>Tendance</span>` : ""}</div>`;
-        // La case « Affichage données » est mise à l'abri avant que la légende soit redessinée
-        const valsLabel = document.getElementById("showVals").closest("label");
-        document.querySelector(".checks").appendChild(valsLabel);
+    <div class="legend"></div>`;
+        // Les cases « Curseur aimanté » et « Affichage données » sont mises à l'abri avant que la ligne soit redessinée
+        const valsLabel = document.getElementById("showVals").closest("label"), snapLabel = document.getElementById("snapChk").closest("label");
+        document.querySelector(".checks").append(snapLabel, valsLabel);
         document.getElementById("chart").innerHTML = svg;
 
         // La case « Affichage données » vit dans la ligne de légende, à droite (la légende est redessinée à chaque pas)
-        document.querySelector("#chart .legend").appendChild(valsLabel);
+        document.querySelector("#chart .legend").append(snapLabel, valsLabel);
 
         // Les infos du point sont dans une couche à part, au-dessus des cases à cocher
         const cbox = document.querySelector(".chart-box");
@@ -2058,11 +2328,12 @@
       <text class="tip" id="tipS" x="${W - R - 4}" y="${T + 46}" text-anchor="end" fill="var(--sim)"></text>`;
 
         // Valeurs au curseur
-        const vp = interpolate(P, cd), vo = interpolate(O, cd);
+        // Seules les courbes cochées alimentent les blocs de valeurs
+        const vp0 = interpolate(P, cd), vp = showP ? vp0 : null, vo = showO ? interpolate(O, cd) : null;
         // Au-delà des pesées, on affiche la simulation si elle est présente
         // Le jour même, on n'affiche pas de poids simulé (il ne doit pas se mêler au poids réel)
         const onToday = +cd === +today();
-        const vs = !onToday && vp === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
+        const vs = !onToday && vp0 === null && at && P.length && cd > P[P.length - 1].d && cd <= simEnd ? at(cd) : null;
         const vShow = vp !== null ? vp : vs;
         const isSim = vp === null && vs !== null;
         document.getElementById("lP").textContent = isSim ? "Poids simulé" : "Poids réel";
@@ -2107,10 +2378,22 @@
 
       const showVals = document.getElementById("showVals");
       const enableVals = () => { showVals.checked = true; };
+      // Curseur aimanté : le curseur saute au point actif (pesée / objectif cochés) le plus proche ;
+      // le point est retenu même si « Affichage données » est décoché (refreshTip n'affiche alors rien)
+      const snapChk = document.getElementById("snapChk");
+      function magnet(n) {
+        if (!snapChk.checked) return n;
+        const L = stops(), t = +dateAt(n);
+        if (!L.length) { state.pin = null; return n; }
+        const best = L.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+        state.pin = best.key; state.hover = null;
+        return dayIdx(new Date(best.t));
+      }
       state.hover = null; state.pin = null;
       // Point affiché en haut à droite : le survol l'emporte sur le clic
       function refreshTip() {
-        const key = showVals.checked ? (state.hover || state.pin) : null;
+        const activeKey = (k) => k && document.getElementById(k[0] === "P" ? "pesChk" : "objChk").checked ? k : null;
+        const key = showVals.checked ? activeKey(state.hover) || activeKey(state.pin) : null;
         document.querySelectorAll("#chart circle.dot").forEach((c) => {
           const on = c.dataset.k === key;
           c.setAttribute("fill", on ? "var(--ok)" : c.dataset.fill);
@@ -2203,7 +2486,7 @@
           if (!pan.moved) { pan.moved = true; state.dragged = true; state.hover = null; try { chartEl.setPointerCapture(e.pointerId); } catch (_) { } }
           const plotW = Math.max(100, chartEl.clientWidth - 54);
           const n = Math.round(pan.c0 + dx / plotW * lenDays());
-          const c = Math.min(+cur.max, Math.max(0, n));
+          const c = magnet(Math.min(+cur.max, Math.max(0, n)));
           if (c !== state.cursor) { setCursor(c); draw(); }
         }
       });
@@ -2255,15 +2538,17 @@
           if (wasOff) draw(); else refreshTip();
         }
       });
-      showVals.addEventListener("change", () => { state.hover = null; state.pin = null; state.last = false; draw(); });
-      cur.addEventListener("input", () => { setCursor(+cur.value); draw(); });
-      document.getElementById("curToday").addEventListener("click", () => { setCursor(Math.max(0, dayIdx(today()))); draw(); });
+      showVals.addEventListener("change", () => { state.hover = null; state.pin = null; state.last = false; if (snapChk.checked) magnet(state.cursor); draw(); });
+      cur.addEventListener("input", () => { setCursor(magnet(+cur.value)); draw(); });
+      snapChk.addEventListener("change", () => { if (snapChk.checked) setCursor(magnet(state.cursor)); draw(); });
+      document.getElementById("curToday").addEventListener("click", () => { setCursor(magnet(Math.max(0, dayIdx(today())))); draw(); });
       document.getElementById("prevPt").addEventListener("click", () => goStop(-1));
       document.getElementById("nextPt").addEventListener("click", () => goStop(1));
       // Double clic : Global, puis zoom sur la période des pesées, puis retour à Global
       chartEl.addEventListener("dblclick", () => { if (!(Date.now() - (state.lastCycle || 0) < 600)) cycleZoom(); });
       // Clic sur Poids réel / Objectif : le curseur saute de point en point (en boucle), échelle inchangée, point mis en évidence en vert
       const loopTo = (list, sid) => {
+        if (!document.getElementById(sid === "P" ? "pesChk" : "objChk").checked) return;
         const pts = list.map((p, i) => ({ t: +p.d, i })).sort((x, y) => x.t - y.t);
         if (!pts.length) return;
         const c = +dateAt(state.cursor);
@@ -2281,6 +2566,7 @@
       if (lastBtn) lastBtn.addEventListener("click", () => {
         // Bouton déjà actif : un nouveau clic masque les infos
         if (state.last) { state.last = false; state.pin = null; state.hover = null; draw(); return; }
+        if (!document.getElementById("pesChk").checked) return;
         setCursor(dayIdx(P[P.length - 1].d));
         enableVals();
         state.last = true; state.hover = null; state.pin = "P" + (P.length - 1);
@@ -2293,6 +2579,7 @@
       [["pesChk", "P"], ["objChk", "O"]].forEach(([id, sid]) => document.getElementById(id).addEventListener("change", (e) => {
         if (!e.currentTarget.checked && state.pin && state.pin[0] === sid) { state.pin = null; state.last = false; }
         state.hover = null;
+        if (snapChk.checked) setCursor(magnet(state.cursor));
         draw();
       }));
       document.getElementById("simChk").addEventListener("change", (e) => {
@@ -2336,6 +2623,23 @@
     <p class="muted">Les données sont stockées sur cet appareil uniquement. Exportez-les régulièrement pour ne rien perdre.</p>
     <button class="btn" id="export">Exporter les données</button>
     <label class="btn file-btn">Importer un fichier (.json)<input type="file" id="import" accept=".json,application/json"></label>
+    <button class="btn danger" id="wipe" style="margin-top:10px">Effacer les données actuelles</button>
+    <dialog class="wipe" id="wipePanel" aria-label="Effacer les données actuelles">
+      <h3>Effacer les données actuelles</h3>
+      <div class="reset-row">
+        <button class="btn danger" id="wipeAll">Remise à zéro<small>pesées, objectifs, notes</small></button>
+        <button type="button" class="undo" id="wipeUndo" aria-label="Annuler la remise à zéro" title="Annuler la remise à zéro" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      </div>
+      <p class="or">ou bien sélectionner :</p>
+      <div class="opt all"><label class="check"><input type="checkbox" id="wipeSel"> Tout sélectionner</label></div>
+      <div class="opt"><label class="check"><input type="checkbox" data-wipe="pesees"> Effacer toutes les pesées</label>
+        <p class="hint">pour effacer les données une à une, rendez-vous dans le <button type="button" data-go="pesees">tableau des pesées</button></p></div>
+      <div class="opt"><label class="check"><input type="checkbox" data-wipe="objectifs"> Effacer tous les objectifs</label>
+        <p class="hint">pour effacer les données une à une, rendez-vous dans le <button type="button" data-go="objectifs">tableau des objectifs</button></p></div>
+      <div class="opt"><label class="check"><input type="checkbox" data-wipe="notes"> Effacer toutes les notes personnelles</label></div>
+      <button class="btn danger" id="wipeSelected" disabled>Effacer la sélection</button>
+      <button class="btn" id="wipeClose">Fermer</button>
+    </dialog>
     <p class="muted" style="font-size:.7rem;text-align:center;margin-top:2rem;opacity:.7">Conception : Sébastien Dumont / contact <a href="mailto:pixelsenscene94@gmail.com" style="color:inherit">pixelsenscene94@gmail.com</a></p>`;
 
       const memo = document.getElementById("memo");
@@ -2344,6 +2648,53 @@
       memo.addEventListener("input", () => {
         clearTimeout(t);
         t = setTimeout(() => { if (save(KEYS.memo, memo.value)) document.getElementById("memoState").textContent = "Notes enregistrées."; }, 400);
+      });
+
+      // Effacement des données actuelles : remise à zéro, ou sélection pesées / objectifs / notes
+      const wipePanel = document.getElementById("wipePanel"), wipeBtn = document.getElementById("wipe");
+      const wipeBoxes = [...wipePanel.querySelectorAll("[data-wipe]")], wipeSel = document.getElementById("wipeSel"), wipeGo = document.getElementById("wipeSelected");
+      const syncWipe = () => {
+        const n = wipeBoxes.filter((b) => b.checked).length;
+        wipeSel.checked = n === wipeBoxes.length; wipeSel.indeterminate = n > 0 && n < wipeBoxes.length;
+        wipeGo.disabled = n === 0;
+      };
+      // Annulation de la dernière remise à zéro : copie des données gardée sur l'appareil
+      const undoBtn = document.getElementById("wipeUndo");
+      const hasUndo = () => localStorage.getItem(KEYS.undo) !== null;
+      undoBtn.disabled = !hasUndo();
+      wipeBtn.addEventListener("click", () => { undoBtn.disabled = !hasUndo(); wipePanel.showModal(); });
+      undoBtn.addEventListener("click", async () => {
+        let snap;
+        try { snap = JSON.parse(localStorage.getItem(KEYS.undo)); } catch (_) { }
+        if (!snap) { undoBtn.disabled = true; return; }
+        if (!(await confirmAsk("Annuler la remise à zéro ? Les données d’avant la remise à zéro seront restaurées et remplaceront les données actuelles.", "Restaurer"))) return;
+        pesees = Array.isArray(snap.pesees) ? snap.pesees : []; objectifs = Array.isArray(snap.objectifs) ? snap.objectifs : [];
+        savePesees(); saveObjectifs(); save(KEYS.memo, snap.memo || "");
+        localStorage.removeItem(KEYS.undo);
+        wipePanel.close(); render(); toast("Données restaurées");
+      });
+      document.getElementById("wipeClose").addEventListener("click", () => wipePanel.close());
+      wipePanel.addEventListener("click", (e) => { if (e.target === wipePanel) wipePanel.close(); });
+      wipeSel.addEventListener("change", () => { wipeBoxes.forEach((b) => (b.checked = wipeSel.checked)); syncWipe(); });
+      wipeBoxes.forEach((b) => b.addEventListener("change", syncWipe));
+      const wipe = (what) => {
+        if (what.includes("pesees")) { pesees = []; savePesees(); }
+        if (what.includes("objectifs")) { objectifs = []; saveObjectifs(); }
+        if (what.includes("notes")) save(KEYS.memo, "");
+      };
+      document.getElementById("wipeAll").addEventListener("click", async () => {
+        if (!(await confirmAsk("Remettre l’application à zéro ? Toutes les pesées, tous les objectifs et toutes les notes seront effacés.", "Tout effacer"))) return;
+        const oldMemo = localStorage.getItem(KEYS.memo) || "";
+        if (pesees.length || objectifs.length || oldMemo.trim()) save(KEYS.undo, { pesees, objectifs, memo: oldMemo });
+        wipe(["pesees", "objectifs", "notes"]);
+        wipePanel.close(); render(); toast("Toutes les données ont été effacées");
+      });
+      wipeGo.addEventListener("click", async () => {
+        const what = wipeBoxes.filter((b) => b.checked).map((b) => b.dataset.wipe);
+        const names = { pesees: "toutes les pesées", objectifs: "tous les objectifs", notes: "toutes les notes personnelles" };
+        if (!(await confirmAsk(`Effacer ${what.map((w) => names[w]).join(", ").replace(/, ([^,]*)$/, " et $1")} ?`, "Effacer"))) return;
+        wipe(what);
+        wipePanel.close(); render(); toast("Données effacées");
       });
 
       document.getElementById("export").addEventListener("click", () => {
